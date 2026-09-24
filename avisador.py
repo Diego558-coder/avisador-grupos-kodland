@@ -71,6 +71,7 @@ def cargar_config():
     if "CAMBIA" in cfg.get("ntfy_tema", "") or not cfg.get("ntfy_tema"):
         sys.exit("Falta el tema de ntfy: ponlo en config.json (ntfy_tema) o en el secreto NTFY_TEMA.")
     cfg.setdefault("intervalo_minutos", 5)
+    cfg.setdefault("heartbeat_horas", 24)
     cfg.setdefault("cursos_a_vigilar", [])
     cfg.setdefault("ignorar_lineas", [])
     return cfg
@@ -292,6 +293,9 @@ def revisar(cfg, estado):
         return estado
 
     anterior = estado.get("cursos", {})
+    ahora = datetime.now()
+    heartbeat_horas = float(cfg.get("heartbeat_horas", 24))
+    heartbeat_ultimo = estado.get("ultimo_heartbeat")
     if not anterior:
         log(f"Primera revisión: guardada línea base de {len(actual)} cursos (sin notificar).")
     else:
@@ -303,10 +307,27 @@ def revisar(cfg, estado):
             notificar(cfg, f"🆕 Grupos nuevos: {curso}", cuerpo)
         if not cambios:
             log("Sin novedades.")
+            try:
+                ultima = datetime.fromisoformat(estado.get("ultima_revision", "1970-01-01T00:00:00"))
+                if heartbeat_ultimo is None and (ahora - ultima).total_seconds() >= heartbeat_horas * 3600:
+                    notificar(
+                        cfg,
+                        "Avisador Kodland: heartbeat",
+                        f"El sistema sigue activo. Última revisión: {estado.get('ultima_revision', 'sin dato')}",
+                        prioridad=3,
+                        tags=("signal_strength",),
+                    )
+                    estado["ultimo_heartbeat"] = ahora.isoformat(timespec="seconds")
+            except ValueError:
+                pass
 
     # Si un curso desaparece temporalmente, conservamos su último estado
     anterior.update(actual)
-    estado = {"cursos": anterior, "ultima_revision": datetime.now().isoformat(timespec="seconds")}
+    estado = {
+        "cursos": anterior,
+        "ultima_revision": ahora.isoformat(timespec="seconds"),
+        "ultimo_heartbeat": estado.get("ultimo_heartbeat"),
+    }
     guardar_json(ESTADO_FILE, estado)
     return estado
 
@@ -338,6 +359,7 @@ def main():
     ap.add_argument("--probar", action="store_true", help="enviar notificación de prueba")
     ap.add_argument("--una-vez", action="store_true", help="revisar una sola vez")
     ap.add_argument("--ver", action="store_true", help="mostrar el navegador mientras revisa")
+    ap.add_argument("--reset", action="store_true", help="borrar el estado guardado y empezar desde cero")
     args = ap.parse_args()
 
     cfg = cargar_config()
@@ -346,6 +368,11 @@ def main():
         return modo_login(cfg)
     if args.probar:
         return notificar(cfg, "Avisador Kodland ✅", "¡Las notificaciones funcionan!")
+    if args.reset:
+        if ESTADO_FILE.exists():
+            ESTADO_FILE.unlink()
+        print("Estado borrado. La próxima revisión volverá a crear la línea base.")
+        return
     if args.ver:
         global leer_todos_los_cursos
         original = leer_todos_los_cursos
