@@ -1,0 +1,10 @@
+# Datos privados: nunca deben subirse al repositorio público
+config.json
+sesion.json
+perfil_navegador/
+log.txt
+
+# Entorno local
+venv/
+__pycache__/
+*.pyc

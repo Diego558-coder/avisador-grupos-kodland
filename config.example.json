@@ -1,0 +1,7 @@
+{
+  "url_app": "PEGA_AQUI_LA_URL_DE_LA_APP_DE_KODLAND",
+  "ntfy_tema": "CAMBIA_ESTO_por_algo_unico",
+  "intervalo_minutos": 5,
+  "cursos_a_vigilar": [],
+  "ignorar_lineas": []
+}

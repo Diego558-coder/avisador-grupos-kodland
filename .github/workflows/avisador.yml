@@ -1,0 +1,63 @@
+name: Avisador de grupos Kodland
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # cada 5 minutos (GitHub puede retrasarlo un poco en horas de mucho tráfico)
+  workflow_dispatch: {}       # permite lanzarlo a mano desde la pestaña Actions
+
+permissions:
+  contents: write            # necesario para guardar el "estado.json" actualizado
+
+concurrency:
+  group: avisador-kodland
+  cancel-in-progress: false
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Cachear navegador de Playwright
+        uses: actions/cache@v4
+        id: cache-playwright
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+
+      - name: Instalar Chromium (Playwright)
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        run: python -m playwright install --with-deps chromium
+
+      - name: Instalar solo dependencias del sistema (si el navegador ya está en caché)
+        if: steps.cache-playwright.outputs.cache-hit == 'true'
+        run: python -m playwright install-deps chromium
+
+      - name: Revisar cursos y notificar si hay novedades
+        env:
+          URL_APP: ${{ secrets.URL_APP }}
+          NTFY_TEMA: ${{ secrets.NTFY_TEMA }}
+          SESION_JSON: ${{ secrets.SESION_JSON }}
+        run: python avisador.py --una-vez
+
+      - name: Guardar el estado actualizado
+        run: |
+          git config user.name "avisador-bot"
+          git config user.email "avisador-bot@users.noreply.github.com"
+          git add estado.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Actualiza estado [skip ci]"
+            git push
+          else
+            echo "Sin cambios en estado.json"
+          fi
