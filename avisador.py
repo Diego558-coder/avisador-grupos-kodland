@@ -484,8 +484,14 @@ def acciones_para(cfg, tutor, curso, grupo_id, info=""):
                                               "Si es el grupo correcto, toca el botón.") if x is not None),
             "priority": 4,
             "tags": ["warning"],
-            "actions": [{"action": "http", "label": "✅ Sí, postularme", "url": confirmar,
-                         "method": "GET", "clear": True}],
+            "actions": [
+                {"action": "http", "label": "✅ Confirmar postulación", "url": confirmar,
+                 "method": "GET", "clear": True},
+                # Cancelar: una petición inofensiva a ntfy; al salir bien, el aviso se cierra
+                {"action": "http", "label": "❌ Cancelar postulación",
+                 "url": (cfg.get("ntfy_servidor") or "https://ntfy.sh").rstrip("/") + "/v1/health",
+                 "method": "GET", "clear": True},
+            ],
         }
         acciones.append({
             "action": "http", "label": "✅ Postularme",
@@ -765,7 +771,7 @@ def main():
         ok = notificar(
             {**cfg, "ntfy_tema": t["ntfy_tema"]},
             "🧪 Prueba del botón",
-            "Grupo inventado: no se postula a nada real.\n1) Toca Postularme  2) te llega '¿Confirmas?'  3) toca Sí, postularme\n4) llega el aviso de que ese grupo no existe.",
+            "Grupo inventado: no se postula a nada real.\n1) Toca Postularme  2) te llega '¿Confirmas?'  3) toca Confirmar (o Cancelar)\n4) llega el aviso de que ese grupo no existe.",
             acciones=acciones_para(cfg, t, "Unity", "PRUEBA_0-0", "Grupo inventado de prueba"),
         )
         sys.exit(0 if ok else 1)
