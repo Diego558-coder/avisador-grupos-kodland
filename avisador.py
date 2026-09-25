@@ -642,6 +642,43 @@ def modo_postular(cfg, args):
     sys.exit(0 if ok else 1)
 
 
+def modo_listar(cfg, args):
+    """Manda al celular TODOS los grupos disponibles ahora, cada uno con su botón.
+    No toca el estado del vigilante, así que no afecta a los avisos futuros."""
+    tutores = cfg["tutores"]
+    try:
+        tutor = tutores[int(args.tutor or 1) - 1]
+        assert int(args.tutor or 1) >= 1
+    except (ValueError, IndexError, AssertionError):
+        sys.exit("Tutor inválido.")
+    cfg_t = {**cfg, "ntfy_tema": tutor["ntfy_tema"]}
+
+    actual = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"))
+    lista, vistos = [], set()
+    for curso, lineas in actual.items():
+        for g in parsear_grupos(lineas):
+            if g["id"] and (curso, g["id"]) not in vistos:
+                vistos.add((curso, g["id"]))
+                lista.append((curso, g))
+    por_curso = Counter(c for c, _ in lista)
+    log(f"Grupos disponibles: {len(lista)}")
+    for curso, n in por_curso.items():
+        log(f"  {curso}: {n}")
+    if args.contar:
+        return
+
+    enviados = 0
+    for curso, g in lista:
+        if notificar(cfg_t, f"📋 {curso}", formatear_grupo(g), prioridad=3,
+                     acciones=acciones_para(cfg_t, tutor, curso, g["id"])):
+            enviados += 1
+        time.sleep(2.5)  # ntfy limita la velocidad de envío
+    notificar(cfg_t, "📋 Lista completa enviada",
+              f"{enviados} de {len(lista)} grupos disponibles ahora.\n" +
+              "\n".join(f"• {c}: {n}" for c, n in por_curso.items()),
+              prioridad=3)
+
+
 def modo_login(cfg):
     # Si ya existía una sesión exportada previamente, la quitamos de en medio
     # para asegurarnos de que este login use el perfil persistente de Chrome
@@ -675,6 +712,9 @@ def main():
     ap.add_argument("--curso", help="nombre del curso, tal como sale en la app")
     ap.add_argument("--grupo", help="código del grupo, p. ej. COL13688_MI-11")
     ap.add_argument("--simular", action="store_true", help="con --postular: llega hasta confirmar, pero no envía nada")
+    ap.add_argument("--listar", action="store_true",
+                    help="enviar al celular todos los grupos disponibles ahora (con --tutor N; --contar solo cuenta)")
+    ap.add_argument("--contar", action="store_true", help="con --listar: solo contar, sin enviar")
     ap.add_argument("--probar-boton", action="store_true",
                     help="envía un aviso con botón Postularme sobre un grupo que NO existe (prueba sin efectos)")
     args = ap.parse_args()
@@ -685,6 +725,8 @@ def main():
         return modo_login(cfg)
     if args.postular:
         return modo_postular(cfg, args)
+    if args.listar:
+        return modo_listar(cfg, args)
     if args.probar_boton:
         t = cfg["tutores"][0]
         ok = notificar(
