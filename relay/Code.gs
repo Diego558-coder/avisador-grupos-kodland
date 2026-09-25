@@ -31,14 +31,17 @@ function doGet(e) {
     var repo = props.getProperty('GH_REPO');
     if (!secreto || !token || !repo) throw new Error('falta configurar el servicio');
 
-    if (String(p.paso || '') !== 'confirmar') throw new Error('enlace antiguo: pide la lista de nuevo');
+    if (String(p.paso || '') !== 'confirmar' || !p.curso64) throw new Error('enlace antiguo: pide la lista de nuevo');
 
     var edad = Date.now() / 1000 - Number(p.ts);
     if (!(edad > -300 && edad < VIGENCIA_SEGUNDOS)) throw new Error('el botón venció');
 
-    var datos = ['confirmar', p.tutor, p.curso, p.grupo, p.tema, p.info || '', p.ts].join('|');
+    // Todo lo firmado es ASCII: Apps Script cambia por '?' los caracteres raros de la URL
+    var datos = ['confirmar', p.tutor, p.curso64, p.grupo, p.tema, p.ts].join('|');
     var firma = aHex(Utilities.computeHmacSha256Signature(datos, secreto));
     if (!iguales(firma, String(p.firma || ''))) throw new Error('enlace no válido');
+    if (!/^[A-Za-z0-9_-]{3,40}$/.test(String(p.grupo))) throw new Error('grupo no válido');
+    var curso = decodificar(String(p.curso64));
 
     var r = UrlFetchApp.fetch(
       'https://api.github.com/repos/' + repo + '/actions/workflows/postular.yml/dispatches',
@@ -52,7 +55,7 @@ function doGet(e) {
         },
         payload: JSON.stringify({
           ref: 'main',
-          inputs: { tutor: String(p.tutor), curso: String(p.curso), grupo: String(p.grupo) }
+          inputs: { tutor: String(p.tutor), curso: curso, grupo: String(p.grupo) }
         }),
         muteHttpExceptions: true
       }
@@ -63,6 +66,12 @@ function doGet(e) {
     mensaje = 'No se pudo: ' + err.message;
   }
   return ContentService.createTextOutput(mensaje);
+}
+
+// base64 sin relleno (lo que manda el avisador) -> texto UTF-8
+function decodificar(b64) {
+  while (b64.length % 4) b64 += '=';
+  return Utilities.newBlob(Utilities.base64DecodeWebSafe(b64)).getDataAsString('UTF-8');
 }
 
 function aHex(bytes) {

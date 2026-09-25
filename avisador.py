@@ -13,6 +13,7 @@ Uso:
 """
 
 import argparse
+import base64
 import hashlib
 import hmac
 import json
@@ -296,6 +297,21 @@ def texto_estable(frame, max_seg=20):
     return anterior or ""
 
 
+def texto_visible(page):
+    """Lo que la app muestra en pantalla (sin el saludo con el nombre), para
+    explicar por qué no apareció el selector: pausa de postulaciones, error, etc."""
+    lineas = []
+    for fr in page.frames:
+        try:
+            for l in fr.inner_text("body").splitlines():
+                l = " ".join(l.split())
+                if l and not l.lower().startswith("hola,") and l not in lineas:
+                    lineas.append(l)
+        except Exception:
+            pass
+    return (" / ".join(lineas) or "nada (página en blanco)")[:200]
+
+
 def leer_todos_los_cursos(cfg, headless=True, kt_id=None):
     """Devuelve {curso: [lineas de texto]} o lanza excepción."""
     resultado = {}
@@ -303,12 +319,19 @@ def leer_todos_los_cursos(cfg, headless=True, kt_id=None):
         ctx, browser = abrir_contexto(p, headless, kt_id)
         try:
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
-            page.goto(cfg["url_app"], wait_until="domcontentloaded", timeout=60000)
-            frame = buscar_frame_con_select(page)
+            frame = None
+            for intento in (1, 2):  # la app a veces tarda: se reintenta antes de dar la alarma
+                page.goto(cfg["url_app"], wait_until="domcontentloaded", timeout=60000)
+                frame = buscar_frame_con_select(page)
+                if frame is not None:
+                    break
+                log(f"La app no mostró el selector de cursos (intento {intento}/2).")
             if frame is None:
                 if "accounts.google.com" in page.url:
                     raise RuntimeError("SESION")
-                raise RuntimeError("No se encontró el selector de cursos en la página.")
+                raise RuntimeError(
+                    "No se encontró el selector de cursos. La app muestra: «" + texto_visible(page) + "»"
+                )
 
             opciones = frame.eval_on_selector_all(
                 "select option",
@@ -455,13 +478,17 @@ def enlace_confirmar(cfg, tutor, curso, grupo_id, info=""):
     base, secreto = cfg.get("relay_url"), cfg.get("relay_secreto")
     if not base or not secreto or not grupo_id:
         return None
-    info = " ".join(str(info).replace("|", "/").split())[:140]
+    # Apps Script cambia por '?' todo carácter no ASCII de la URL (tildes, "·"...),
+    # y la firma dejaba de coincidir. Por eso el enlace solo lleva ASCII: el curso
+    # va en base64 y no lleva texto libre (el nombre y el horario solo se muestran
+    # en el aviso, no hacen falta para postular).
+    curso64 = base64.urlsafe_b64encode(curso.encode("utf-8")).decode("ascii").rstrip("=")
     ts = str(int(time.time()))
-    campos = ["confirmar", str(tutor["pos"]), curso, grupo_id, tutor["ntfy_tema"], info, ts]
+    campos = ["confirmar", str(tutor["pos"]), curso64, grupo_id, tutor["ntfy_tema"], ts]
     firma = hmac.new(secreto.encode("utf-8"), "|".join(campos).encode("utf-8"), hashlib.sha256).hexdigest()
     consulta = urllib.parse.urlencode(
-        {"paso": "confirmar", "tutor": tutor["pos"], "curso": curso, "grupo": grupo_id,
-         "tema": tutor["ntfy_tema"], "info": info, "ts": ts, "firma": firma},
+        {"paso": "confirmar", "tutor": tutor["pos"], "curso64": curso64, "grupo": grupo_id,
+         "tema": tutor["ntfy_tema"], "ts": ts, "firma": firma},
         quote_via=urllib.parse.quote,
     )
     return f"{base}?{consulta}"
@@ -484,7 +511,7 @@ def acciones_para(cfg, tutor, curso, grupo_id, info=""):
             "topic": tutor["ntfy_tema"],
             "title": "⚠️ ¿Confirmas la postulación?",
             "message": "\n".join(x for x in (curso, f"🏷️ {grupo_id}", info, "",
-                                              "Si es el grupo correcto, toca el botón.") if x is not None),
+                                              "Si es el grupo correcto, toca Confirmar. Si en 1 minuto no llega el aviso Postulando, el toque falló: usa Abrir app.") if x is not None),
             "priority": 4,
             "tags": ["warning"],
             "actions": [
