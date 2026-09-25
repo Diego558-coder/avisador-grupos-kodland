@@ -438,27 +438,35 @@ def formatear_grupos(grupos):
 MAX_AVISOS_POR_CURSO = 6
 
 
-def enlace_postular(cfg, tutor, curso, grupo_id):
-    """Enlace firmado que solo sirve para postular a ESTE tutor a ESTE grupo.
-    No lleva ninguna llave: la firma (HMAC) se comprueba en el mini-servicio de
-    Apps Script, que es quien guarda el token de GitHub."""
+def enlace_postular(cfg, tutor, curso, grupo_id, info=""):
+    """Enlace firmado del PRIMER toque (paso 'pedir'). No postula: el mini-servicio
+    responde mandando un segundo aviso que pide confirmar, y solo el botón de ese
+    segundo aviso postula de verdad. No lleva ninguna llave: la firma (HMAC) se
+    comprueba en el mini-servicio de Apps Script, que es quien guarda el token."""
     base, secreto = cfg.get("relay_url"), cfg.get("relay_secreto")
     if not base or not secreto or not grupo_id:
         return None
+    info = " ".join(str(info).replace("|", "/").split())[:140]
     ts = str(int(time.time()))
-    datos = "|".join([str(tutor["pos"]), curso, grupo_id, ts])
-    firma = hmac.new(secreto.encode("utf-8"), datos.encode("utf-8"), hashlib.sha256).hexdigest()
+    campos = ["pedir", str(tutor["pos"]), curso, grupo_id, tutor["ntfy_tema"], info, ts]
+    firma = hmac.new(secreto.encode("utf-8"), "|".join(campos).encode("utf-8"), hashlib.sha256).hexdigest()
     consulta = urllib.parse.urlencode(
-        {"tutor": tutor["pos"], "curso": curso, "grupo": grupo_id, "ts": ts, "firma": firma},
+        {"paso": "pedir", "tutor": tutor["pos"], "curso": curso, "grupo": grupo_id,
+         "tema": tutor["ntfy_tema"], "info": info, "ts": ts, "firma": firma},
         quote_via=urllib.parse.quote,
     )
     return f"{base}?{consulta}"
 
 
-def acciones_para(cfg, tutor, curso, grupo_id):
-    """Botones del aviso: '✅ Postularme' (un toque, si hay mini-servicio) y 'Abrir app'."""
+def resumen_grupo(g):
+    """Una línea para el aviso de confirmación: qué grupo vas a confirmar."""
+    return " · ".join(x for x in (g["nombre"], g["horario"]) if x)
+
+
+def acciones_para(cfg, tutor, curso, grupo_id, info=""):
+    """Botones del aviso: '✅ Postularme' (pide confirmar, si hay mini-servicio) y 'Abrir app'."""
     acciones = []
-    enlace = enlace_postular(cfg, tutor, curso, grupo_id)
+    enlace = enlace_postular(cfg, tutor, curso, grupo_id, info)
     if enlace:
         acciones.append({"action": "http", "label": "✅ Postularme", "url": enlace,
                          "method": "GET", "clear": True})
@@ -478,7 +486,7 @@ def avisar_cambios(cfg, tutor, curso, lineas):
     fallidas = []
     for g in grupos:
         ok = notificar(cfg, f"🆕 {curso}", formatear_grupo(g),
-                       acciones=acciones_para(cfg, tutor, curso, g["id"]))
+                       acciones=acciones_para(cfg, tutor, curso, g["id"], resumen_grupo(g)))
         if not ok:
             fallidas.extend(g["lineas"])
     return fallidas
@@ -670,7 +678,7 @@ def modo_listar(cfg, args):
     enviados = 0
     for curso, g in lista:
         if notificar(cfg_t, f"📋 {curso}", formatear_grupo(g), prioridad=3,
-                     acciones=acciones_para(cfg_t, tutor, curso, g["id"])):
+                     acciones=acciones_para(cfg_t, tutor, curso, g["id"], resumen_grupo(g))):
             enviados += 1
         time.sleep(2.5)  # ntfy limita la velocidad de envío
     notificar(cfg_t, "📋 Lista completa enviada",
@@ -733,7 +741,7 @@ def main():
             {**cfg, "ntfy_tema": t["ntfy_tema"]},
             "🧪 Prueba del botón",
             "Grupo inventado: al tocar Postularme NO se postula a nada real.\nDebe llegarte un aviso de que ese grupo no existe.",
-            acciones=acciones_para(cfg, t, "Unity", "PRUEBA_0-0"),
+            acciones=acciones_para(cfg, t, "Unity", "PRUEBA_0-0", "Grupo inventado de prueba"),
         )
         sys.exit(0 if ok else 1)
     tutores = cfg["tutores"]
