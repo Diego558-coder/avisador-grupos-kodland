@@ -1,0 +1,68 @@
+name: Postularme a un grupo
+
+# Lo lanza el botón "Postularme" de los avisos (a través del mini-servicio de
+# Apps Script). También se puede lanzar a mano desde la pestaña Actions.
+on:
+  workflow_dispatch:
+    inputs:
+      tutor:
+        description: "Posición del tutor en el secreto TUTORES (1, 2, ...)"
+        required: true
+      curso:
+        description: "Curso, tal como sale en la app"
+        required: true
+      grupo:
+        description: "Código del grupo, p. ej. COL13688_MI-11"
+        required: true
+
+permissions:
+  contents: read
+
+# Independiente de la vigilancia: si no, esperaría horas a que termine esa.
+concurrency:
+  group: postular-kodland
+  cancel-in-progress: false
+
+jobs:
+  postular:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Cachear navegador de Playwright
+        uses: actions/cache@v4
+        id: cache-playwright
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+
+      - name: Instalar Chromium (Playwright)
+        if: steps.cache-playwright.outputs.cache-hit != 'true'
+        run: python -m playwright install --with-deps chromium
+
+      - name: Instalar solo dependencias del sistema (si el navegador ya está en caché)
+        if: steps.cache-playwright.outputs.cache-hit == 'true'
+        run: python -m playwright install-deps chromium
+
+      - name: Postularme
+        env:
+          URL_APP: ${{ secrets.URL_APP }}
+          NTFY_TEMA: ${{ secrets.NTFY_TEMA }}
+          TUTORES: ${{ secrets.TUTORES }}
+          SESION_JSON: ${{ secrets.SESION_JSON }}
+          # Los datos entran por variables de entorno (no dentro del comando)
+          # para que nadie pueda colar comandos a través de ellos.
+          IN_TUTOR: ${{ inputs.tutor }}
+          IN_CURSO: ${{ inputs.curso }}
+          IN_GRUPO: ${{ inputs.grupo }}
+        run: python avisador.py --postular --tutor "$IN_TUTOR" --curso "$IN_CURSO" --grupo "$IN_GRUPO"

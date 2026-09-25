@@ -14,10 +14,13 @@ Uso:
 
 import argparse
 import hashlib
+import hmac
 import json
 import os
+import re
 import sys
 import time
+import urllib.parse
 import urllib.request
 from collections import Counter
 from datetime import datetime, timezone
@@ -69,6 +72,10 @@ def cargar_config():
         cfg["ntfy_tema"] = env("NTFY_TEMA")
     if env("NTFY_SERVIDOR"):
         cfg["ntfy_servidor"] = env("NTFY_SERVIDOR")
+    if env("RELAY_URL"):
+        cfg["relay_url"] = env("RELAY_URL")
+    if env("RELAY_SECRETO"):
+        cfg["relay_secreto"] = env("RELAY_SECRETO")
     if env("SESION_JSON") and not SESION_FILE.exists():
         SESION_FILE.write_text(env("SESION_JSON"), encoding="utf-8")
 
@@ -97,7 +104,7 @@ def cargar_config():
         if not tema or "CAMBIA" in tema:
             sys.exit(f"Al tutor n.º {i} le falta 'ntfy_tema'.")
         cfg["tutores"].append(
-            {"nombre": str(t.get("nombre") or f"tutor {i}"), "kt_id": kt, "ntfy_tema": tema}
+            {"nombre": str(t.get("nombre") or f"tutor {i}"), "kt_id": kt, "ntfy_tema": tema, "pos": i}
         )
     if not cfg["tutores"]:
         sys.exit("Falta al menos un tutor: secreto TUTORES, o NTFY_TEMA / ntfy_tema.")
@@ -113,7 +120,7 @@ def cargar_config():
 NOTIFICACIONES_FALLIDAS = 0
 
 
-def notificar(cfg, titulo, mensaje, prioridad=4, tags=("bell",)):
+def notificar(cfg, titulo, mensaje, prioridad=4, tags=("bell",), acciones=None):
     """Envía a ntfy con reintentos. Devuelve True si llegó."""
     global NOTIFICACIONES_FALLIDAS
     payload = {
@@ -124,6 +131,8 @@ def notificar(cfg, titulo, mensaje, prioridad=4, tags=("bell",)):
         "tags": list(tags),
         "click": cfg["url_app"],
     }
+    if acciones:
+        payload["actions"] = acciones
     for intento in range(1, 4):
         req = urllib.request.Request(
             cfg.get("ntfy_servidor", "https://ntfy.sh"),
@@ -313,6 +322,7 @@ def leer_todos_los_cursos(cfg, headless=True, kt_id=None):
                 "mis postulaciones",
                 "← volver a cursos",
                 "postularme",
+                "✓ ya te postulaste",  # aparece al postularte; no es un grupo nuevo
             }
 
             for o in opciones:
@@ -359,61 +369,129 @@ def comparar(anterior, actual):
     return cambios
 
 
-def formatear_grupos(lineas):
-    """Convierte las líneas raw en un formato bonito y legible para ntfy."""
-    grupos = []
-    grupo_actual = {"nombre": "", "horario": "", "inicio": "", "id": ""}
+def es_codigo_grupo(linea):
+    """Código de grupo, p. ej. COL13688_MI-11 o PRM_COL14171_JU-13."""
+    return "_" in linea and " " not in linea and any(c.isdigit() for c in linea) and len(linea) < 30
+
+
+def parsear_grupos(lineas):
+    """Agrupa las líneas de la app en grupos: nombre, horario, inicio, código y
+    las líneas originales de cada uno (para poder marcarlas como avisadas)."""
+    grupos, g = [], None
+
+    def vacio():
+        return {"nombre": "", "horario": "", "inicio": "", "id": "", "lineas": []}
 
     for linea in lineas:
         linea = linea.strip()
         if not linea:
             continue
-
-        # Nombre del grupo: línea que comienza con [número]
         if linea.startswith("[") and "]" in linea:
-            # Extrae el nombre limpio
-            # Ej: [1209]Unity Game Developer[None][13-17][90 min]...
-            partes = linea.split("]")
-            if len(partes) > 1:
-                nombre = partes[1]
-                # Limpia los brackets de más
-                nombre = nombre.split("[")[0].strip()
-                if nombre:
-                    if grupo_actual["nombre"]:  # guarda el anterior
-                        grupos.append(grupo_actual)
-                    grupo_actual = {"nombre": nombre, "horario": "", "inicio": "", "id": ""}
+            if g and (g["id"] or g["nombre"]):
+                grupos.append(g)
+            g = vacio()
+            g["nombre"] = linea.split("]")[1].split("[")[0].strip() or linea
+        else:
+            if "🕐" in linea:
+                campo, valor = "horario", linea.replace("🕐", "").strip()
+            elif "📅" in linea:
+                campo, valor = "inicio", linea.replace("📅", "").strip()
+            elif es_codigo_grupo(linea):
+                campo, valor = "id", linea
+            else:
+                continue
+            # Un dato que llega cuando ya estaba lleno (o tras el código) es de otro grupo
+            if g is None or g[campo] or (campo != "id" and g["id"]):
+                if g and (g["id"] or g["nombre"] or g["horario"]):
+                    grupos.append(g)
+                g = vacio()
+            g[campo] = valor
+        g["lineas"].append(linea)
+    if g and (g["id"] or g["nombre"] or g["horario"]):
+        grupos.append(g)
+    return grupos
 
-        # Horario: línea con 🕐
-        elif "🕐" in linea:
-            grupo_actual["horario"] = linea.replace("🕐", "").strip()
 
-        # Fecha de inicio: línea con 📅
-        elif "📅" in linea:
-            grupo_actual["inicio"] = linea.replace("📅", "").strip()
+def formatear_grupo(g):
+    """Texto de un solo grupo para el aviso."""
+    filas = [g["nombre"] or "Grupo nuevo"]
+    if g["horario"]:
+        filas.append(f"🕐 {g['horario']}")
+    if g["inicio"]:
+        filas.append(f"📅 {g['inicio']}")
+    if g["id"]:
+        filas.append(f"🏷️ {g['id']}")
+    return "\n".join(filas)
 
-        # ID del grupo: línea que parece un código (ej: COL13688_MI-11)
-        elif "_" in linea and any(c.isdigit() for c in linea) and len(linea) < 30:
-            grupo_actual["id"] = linea
 
-    if grupo_actual["nombre"]:
-        grupos.append(grupo_actual)
-
-    # Formatea de forma bonita
+def formatear_grupos(grupos):
+    """Resumen de varios grupos en un solo aviso (máximo 10)."""
     resultado = []
-    for i, g in enumerate(grupos[:10], 1):  # Máximo 10 grupos por notificación
-        resultado.append(f"{i}️⃣ {g['nombre']}")
-        if g["horario"]:
-            resultado.append(f"   🕐 {g['horario']}")
-        if g["inicio"]:
-            resultado.append(f"   📅 {g['inicio']}")
-        if g["id"]:
-            resultado.append(f"   🏷️ {g['id']}")
-        resultado.append("")  # línea en blanco entre grupos
-
+    for i, g in enumerate(grupos[:10], 1):
+        resultado.append(f"{i}️⃣ " + formatear_grupo(g).replace("\n", "\n   "))
+        resultado.append("")
     if len(grupos) > 10:
         resultado.append(f"… y {len(grupos) - 10} grupos más")
-
     return "\n".join(resultado)
+
+
+MAX_AVISOS_POR_CURSO = 6
+
+
+def enlace_postular(cfg, tutor, curso, grupo_id):
+    """Enlace firmado que solo sirve para postular a ESTE tutor a ESTE grupo.
+    No lleva ninguna llave: la firma (HMAC) se comprueba en el mini-servicio de
+    Apps Script, que es quien guarda el token de GitHub."""
+    base, secreto = cfg.get("relay_url"), cfg.get("relay_secreto")
+    if not base or not secreto or not grupo_id:
+        return None
+    ts = str(int(time.time()))
+    datos = "|".join([str(tutor["pos"]), curso, grupo_id, ts])
+    firma = hmac.new(secreto.encode("utf-8"), datos.encode("utf-8"), hashlib.sha256).hexdigest()
+    consulta = urllib.parse.urlencode(
+        {"t": tutor["pos"], "c": curso, "g": grupo_id, "ts": ts, "s": firma},
+        quote_via=urllib.parse.quote,
+    )
+    return f"{base}?{consulta}"
+
+
+def acciones_para(cfg, tutor, curso, grupo_id):
+    """Botones del aviso: '✅ Postularme' (un toque, si hay mini-servicio) y 'Abrir app'."""
+    acciones = []
+    enlace = enlace_postular(cfg, tutor, curso, grupo_id)
+    if enlace:
+        acciones.append({"action": "http", "label": "✅ Postularme", "url": enlace,
+                         "method": "GET", "clear": True})
+    acciones.append({"action": "view", "label": "🔗 Abrir app", "url": cfg["url_app"]})
+    return acciones
+
+
+def avisar_cambios(cfg, tutor, curso, lineas):
+    """Un aviso por grupo nuevo, cada uno con su botón. Devuelve las líneas que
+    NO se pudieron avisar, para que se reintenten en la próxima revisión."""
+    grupos = parsear_grupos(lineas)
+    if not grupos or len(grupos) > MAX_AVISOS_POR_CURSO or any(not g["id"] for g in grupos):
+        cuerpo = formatear_grupos(grupos) or "\n".join(lineas[:15])
+        ok = notificar(cfg, f"🆕 Grupos nuevos: {curso}", cuerpo,
+                       acciones=acciones_para(cfg, tutor, curso, None))
+        return [] if ok else list(lineas)
+    fallidas = []
+    for g in grupos:
+        ok = notificar(cfg, f"🆕 {curso}", formatear_grupo(g),
+                       acciones=acciones_para(cfg, tutor, curso, g["id"]))
+        if not ok:
+            fallidas.extend(g["lineas"])
+    return fallidas
+
+
+def quitar_lineas(lineas, quitar):
+    pendiente, resultado = Counter(quitar), []
+    for l in lineas:
+        if pendiente[l] > 0:
+            pendiente[l] -= 1
+        else:
+            resultado.append(l)
+    return resultado
 
 
 def revisar(cfg, estado, tutor):
@@ -440,16 +518,14 @@ def revisar(cfg, estado, tutor):
 
     anterior = estado.get("cursos", {})
     ahora = datetime.now(timezone.utc)
-    no_notificados = set()
+    pendientes = {}  # curso -> líneas que no se pudieron avisar (se reintentan)
     if not anterior:
         log(f"Primera revisión: guardada línea base de {len(actual)} cursos (sin notificar).")
     else:
         cambios = comparar(anterior, actual)
         for curso, lineas in cambios.items():
-            cuerpo = formatear_grupos(lineas)
-            if not notificar(cfg, f"🆕 Grupos nuevos: {curso}", cuerpo):
-                # No lo damos por visto: se vuelve a intentar en la próxima revisión
-                no_notificados.add(curso)
+            # Lo que no se pudo avisar no se da por visto: se reintenta después
+            pendientes[curso] = avisar_cambios(cfg, tutor, curso, lineas)
         if not cambios:
             log("Sin novedades.")
 
@@ -470,8 +546,7 @@ def revisar(cfg, estado, tutor):
 
     # Si un curso desaparece temporalmente, conservamos su último estado
     for curso, lineas in actual.items():
-        if curso not in no_notificados:
-            anterior[curso] = lineas
+        anterior[curso] = quitar_lineas(lineas, pendientes.get(curso, []))
     # Sin "ultima_revision": así estado.json solo cambia cuando hay algo nuevo
     # y el repositorio no se llena de commits cada 5 minutos.
     estado = {"cursos": anterior, "ultimo_heartbeat": heartbeat.isoformat(timespec="seconds")}
@@ -485,6 +560,86 @@ def leer_fecha(texto):
     except (TypeError, ValueError):
         return None
     return fecha if fecha.tzinfo else fecha.replace(tzinfo=timezone.utc)
+
+
+def postular(cfg, tutor, curso, grupo, simular=False):
+    """Se postula a un grupo como lo haría una persona: elige el curso, toca
+    'Postularme' y luego 'Confirmar postulación'. Devuelve (ok, mensaje).
+    Con simular=True llega hasta el panel de confirmación y se detiene."""
+    with sync_playwright() as p:
+        ctx, browser = abrir_contexto(p, True, tutor.get("kt_id"))
+        try:
+            page = ctx.new_page()
+            page.goto(cfg["url_app"], wait_until="domcontentloaded", timeout=60000)
+            frame = buscar_frame_con_select(page)
+            if frame is None:
+                return False, "No se pudo entrar a la app de Kodland."
+            try:
+                frame.select_option("select", label=curso)
+            except Exception:
+                return False, f"No encontré el curso «{curso}» en tu lista."
+            texto_estable(frame, 15)
+
+            tarjetas = frame.locator("#groups > .card")
+            indice = None
+            for i in range(tarjetas.count()):
+                if tarjetas.nth(i).locator(".grp").first.inner_text().strip() == grupo:
+                    indice = i
+                    break
+            if indice is None:
+                return False, f"El grupo {grupo} ya no está disponible (puede que alguien lo tomara)."
+
+            tarjeta = tarjetas.nth(indice)
+            if tarjeta.locator(".done").count():
+                return True, f"Ya estabas postulado al grupo {grupo} ✓"
+            if frame.locator(f"#h{indice}").count():
+                return False, "Este grupo pide que escribas tu horario: postúlate desde la app."
+
+            tarjeta.locator(".apply").click()
+            confirmar = tarjeta.locator(".send")
+            confirmar.wait_for(state="visible", timeout=10000)
+            if simular:
+                return True, f"SIMULACIÓN: el grupo {grupo} está listo para confirmar. No se envió nada."
+
+            frame.evaluate("document.getElementById('toast').textContent = ''")
+            confirmar.click()
+            respuesta, fin = "", time.time() + 30
+            while time.time() < fin and not respuesta:
+                time.sleep(0.5)
+                respuesta = frame.locator("#toast").inner_text().strip()
+            # Si la postulación se aceptó, la tarjeta pasa a "✓ Ya te postulaste"
+            aceptada = frame.locator("#groups > .card").nth(indice).locator(".done").count() > 0
+            return aceptada, respuesta or ("Postulación enviada" if aceptada else "La app no respondió a tiempo.")
+        finally:
+            cerrar_contexto(ctx, browser)
+
+
+def modo_postular(cfg, args):
+    tutores = cfg["tutores"]
+    try:
+        tutor = tutores[int(args.tutor) - 1]
+        assert int(args.tutor) >= 1
+    except (TypeError, ValueError, IndexError, AssertionError):
+        sys.exit("Tutor inválido.")
+    grupo, curso = (args.grupo or "").strip(), (args.curso or "").strip()
+    # Estos datos pueden venir de fuera (botón del celular): se validan
+    if not re.fullmatch(r"[A-Za-z0-9_-]{3,40}", grupo) or not curso or len(curso) > 80:
+        sys.exit("Grupo o curso inválido.")
+
+    log("Postulando…")
+    try:
+        ok, msg = postular(cfg, tutor, curso, grupo, simular=args.simular)
+    except Exception as e:
+        ok, msg = False, f"Error inesperado: {type(e).__name__}"
+    log(("OK: " if ok else "NO SE PUDO: ") + msg)
+    if not args.simular:
+        notificar(
+            {**cfg, "ntfy_tema": tutor["ntfy_tema"]},
+            "✅ Postulación enviada" if ok else "❌ No se pudo postular",
+            f"{curso}\n🏷️ {grupo}\n{msg}",
+            tags=("white_check_mark",) if ok else ("x",),
+        )
+    sys.exit(0 if ok else 1)
 
 
 def modo_login(cfg):
@@ -515,12 +670,30 @@ def main():
     ap.add_argument("--una-vez", action="store_true", help="revisar una sola vez")
     ap.add_argument("--ver", action="store_true", help="mostrar el navegador mientras revisa")
     ap.add_argument("--reset", action="store_true", help="borrar el estado guardado y empezar desde cero")
+    ap.add_argument("--postular", action="store_true", help="postularse a un grupo (con --tutor, --curso y --grupo)")
+    ap.add_argument("--tutor", help="posición del tutor en la lista (1, 2, ...)")
+    ap.add_argument("--curso", help="nombre del curso, tal como sale en la app")
+    ap.add_argument("--grupo", help="código del grupo, p. ej. COL13688_MI-11")
+    ap.add_argument("--simular", action="store_true", help="con --postular: llega hasta confirmar, pero no envía nada")
+    ap.add_argument("--probar-boton", action="store_true",
+                    help="envía un aviso con botón Postularme sobre un grupo que NO existe (prueba sin efectos)")
     args = ap.parse_args()
 
     cfg = cargar_config()
 
     if args.login:
         return modo_login(cfg)
+    if args.postular:
+        return modo_postular(cfg, args)
+    if args.probar_boton:
+        t = cfg["tutores"][0]
+        ok = notificar(
+            {**cfg, "ntfy_tema": t["ntfy_tema"]},
+            "🧪 Prueba del botón",
+            "Grupo inventado: al tocar Postularme NO se postula a nada real.\nDebe llegarte un aviso de que ese grupo no existe.",
+            acciones=acciones_para(cfg, t, "Unity", "PRUEBA_0-0"),
+        )
+        sys.exit(0 if ok else 1)
     tutores = cfg["tutores"]
     if args.probar:
         # Solo al primer tutor (el tuyo): así no molestas al resto al probar.

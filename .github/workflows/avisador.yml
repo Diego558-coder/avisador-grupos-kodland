@@ -64,6 +64,8 @@ jobs:
           NTFY_TEMA: ${{ secrets.NTFY_TEMA }}
           TUTORES: ${{ secrets.TUTORES }}
           SESION_JSON: ${{ secrets.SESION_JSON }}
+          RELAY_URL: ${{ secrets.RELAY_URL }}
+          RELAY_SECRETO: ${{ secrets.RELAY_SECRETO }}
         run: |
           git config user.name "avisador-bot"
           git config user.email "avisador-bot@users.noreply.github.com"
