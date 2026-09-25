@@ -211,7 +211,10 @@ def abrir_contexto(p, headless, kt_id=None):
         # Modo portátil: sirve igual en Windows (PC) que en Linux (servidor en
         # la nube), porque la sesión viaja en un archivo de datos (cookies),
         # no en un perfil de Chrome atado al sistema operativo.
-        browser = p.chromium.launch(headless=headless, args=args_anti_deteccion)
+        # PW_CANAL=chrome usa el Chrome que ya trae el servidor de GitHub: no hay
+        # que descargar ni instalar el navegador de Playwright (ahorra ~20 s).
+        browser = p.chromium.launch(headless=headless, args=args_anti_deteccion,
+                                    channel=os.environ.get("PW_CANAL") or None)
         ctx = browser.new_context(
             storage_state=sesion_para(kt_id), viewport={"width": 1200, "height": 900}
         )
@@ -487,10 +490,20 @@ def acciones_para(cfg, tutor, curso, grupo_id, info=""):
             "actions": [
                 {"action": "http", "label": "✅ Confirmar postulación", "url": confirmar,
                  "method": "GET", "clear": True},
-                # Cancelar: una petición inofensiva a ntfy; al salir bien, el aviso se cierra
+                # Cancelar: el celular publica un aviso que lo confirma (así se ve que
+                # funcionó aunque el aviso de "¿Confirmas?" no se cierre solo)
                 {"action": "http", "label": "❌ Cancelar postulación",
-                 "url": (cfg.get("ntfy_servidor") or "https://ntfy.sh").rstrip("/") + "/v1/health",
-                 "method": "GET", "clear": True},
+                 "url": cfg.get("ntfy_servidor") or "https://ntfy.sh",
+                 "method": "POST",
+                 "headers": {"Content-Type": "application/json"},
+                 "body": json.dumps({
+                     "topic": tutor["ntfy_tema"],
+                     "title": "✖️ Postulación cancelada",
+                     "message": f"{curso} · {grupo_id}\nNo se postuló a nada.",
+                     "priority": 2,
+                     "tags": ["x"],
+                 }, ensure_ascii=False),
+                 "clear": True},
             ],
         }
         acciones.append({

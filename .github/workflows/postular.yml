@@ -39,23 +39,9 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
-      - name: Cachear navegador de Playwright
-        uses: actions/cache@v4
-        id: cache-playwright
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
-
-      - name: Instalar Chromium (Playwright)
-        if: steps.cache-playwright.outputs.cache-hit != 'true'
-        run: python -m playwright install --with-deps chromium
-
-      - name: Instalar solo dependencias del sistema (si el navegador ya está en caché)
-        if: steps.cache-playwright.outputs.cache-hit == 'true'
-        run: python -m playwright install-deps chromium
-
       - name: Postularme
         env:
+          PW_CANAL: chrome   # usa el Chrome ya instalado en el servidor de GitHub
           URL_APP: ${{ secrets.URL_APP }}
           NTFY_TEMA: ${{ secrets.NTFY_TEMA }}
           NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
