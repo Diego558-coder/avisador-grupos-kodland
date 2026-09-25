@@ -630,7 +630,14 @@ def postular(cfg, tutor, curso, grupo, simular=False):
                 frame.select_option("select", label=curso)
             except Exception:
                 return False, f"No encontré el curso «{curso}» en tu lista."
-            texto_estable(frame, 15)
+            try:
+                frame.wait_for_function(
+                    "document.querySelector('#groups .card') || (document.querySelector('#groups .state')"
+                    " && !/Buscando/i.test(document.querySelector('#groups .state').textContent))",
+                    timeout=20000,
+                )
+            except Exception:
+                pass  # si no se detecta, seguimos: más abajo se avisa si el grupo no está
 
             tarjetas = frame.locator("#groups > .card")
             indice = None
@@ -679,6 +686,13 @@ def modo_postular(cfg, args):
         sys.exit("Grupo o curso inválido.")
 
     log("Postulando…")
+    if not args.simular:
+        notificar(
+            {**cfg, "ntfy_tema": tutor["ntfy_tema"]},
+            "⏳ Postulando…",
+            f"{curso}\n🏷️ {grupo}\nEn unos 30 segundos te digo cómo salió.",
+            prioridad=2, tags=("hourglass_flowing_sand",),
+        )
     try:
         ok, msg = postular(cfg, tutor, curso, grupo, simular=args.simular)
     except Exception as e:
