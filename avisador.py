@@ -444,20 +444,20 @@ def formatear_grupos(grupos):
 MAX_AVISOS_POR_CURSO = 6
 
 
-def enlace_postular(cfg, tutor, curso, grupo_id, info=""):
-    """Enlace firmado del PRIMER toque (paso 'pedir'). No postula: el mini-servicio
-    responde mandando un segundo aviso que pide confirmar, y solo el botón de ese
-    segundo aviso postula de verdad. No lleva ninguna llave: la firma (HMAC) se
-    comprueba en el mini-servicio de Apps Script, que es quien guarda el token."""
+def enlace_confirmar(cfg, tutor, curso, grupo_id, info=""):
+    """Enlace firmado que postula de verdad (lo recibe el mini-servicio de Apps
+    Script). Solo va dentro del aviso '¿Confirmas?', nunca en el primero. No lleva
+    ninguna llave: la firma (HMAC) se comprueba en el mini-servicio, que es quien
+    guarda el token de GitHub."""
     base, secreto = cfg.get("relay_url"), cfg.get("relay_secreto")
     if not base or not secreto or not grupo_id:
         return None
     info = " ".join(str(info).replace("|", "/").split())[:140]
     ts = str(int(time.time()))
-    campos = ["pedir", str(tutor["pos"]), curso, grupo_id, tutor["ntfy_tema"], info, ts]
+    campos = ["confirmar", str(tutor["pos"]), curso, grupo_id, tutor["ntfy_tema"], info, ts]
     firma = hmac.new(secreto.encode("utf-8"), "|".join(campos).encode("utf-8"), hashlib.sha256).hexdigest()
     consulta = urllib.parse.urlencode(
-        {"paso": "pedir", "tutor": tutor["pos"], "curso": curso, "grupo": grupo_id,
+        {"paso": "confirmar", "tutor": tutor["pos"], "curso": curso, "grupo": grupo_id,
          "tema": tutor["ntfy_tema"], "info": info, "ts": ts, "firma": firma},
         quote_via=urllib.parse.quote,
     )
@@ -470,12 +470,31 @@ def resumen_grupo(g):
 
 
 def acciones_para(cfg, tutor, curso, grupo_id, info=""):
-    """Botones del aviso: '✅ Postularme' (pide confirmar, si hay mini-servicio) y 'Abrir app'."""
+    """Botones del aviso. '✅ Postularme' NO postula: al tocarlo, el propio celular
+    publica en ntfy un segundo aviso '¿Confirmas?', y solo el botón de ese aviso
+    postula. (Lo publica el teléfono y no un servidor porque ntfy limita los envíos
+    por dirección de internet y los servidores de Google comparten la suya.)"""
     acciones = []
-    enlace = enlace_postular(cfg, tutor, curso, grupo_id, info)
-    if enlace:
-        acciones.append({"action": "http", "label": "✅ Postularme", "url": enlace,
-                         "method": "GET", "clear": True})
+    confirmar = enlace_confirmar(cfg, tutor, curso, grupo_id, info)
+    if confirmar:
+        pregunta = {
+            "topic": tutor["ntfy_tema"],
+            "title": "⚠️ ¿Confirmas la postulación?",
+            "message": "\n".join(x for x in (curso, f"🏷️ {grupo_id}", info, "",
+                                              "Si es el grupo correcto, toca el botón.") if x is not None),
+            "priority": 4,
+            "tags": ["warning"],
+            "actions": [{"action": "http", "label": "✅ Sí, postularme", "url": confirmar,
+                         "method": "GET", "clear": True}],
+        }
+        acciones.append({
+            "action": "http", "label": "✅ Postularme",
+            "url": cfg.get("ntfy_servidor") or "https://ntfy.sh",
+            "method": "POST",
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps(pregunta, ensure_ascii=False),
+            "clear": False,  # el aviso del grupo se queda por si cancelas
+        })
     acciones.append({"action": "view", "label": "🔗 Abrir app", "url": cfg["url_app"]})
     return acciones
 
@@ -746,7 +765,7 @@ def main():
         ok = notificar(
             {**cfg, "ntfy_tema": t["ntfy_tema"]},
             "🧪 Prueba del botón",
-            "Grupo inventado: al tocar Postularme NO se postula a nada real.\nDebe llegarte un aviso de que ese grupo no existe.",
+            "Grupo inventado: no se postula a nada real.\n1) Toca Postularme  2) te llega '¿Confirmas?'  3) toca Sí, postularme\n4) llega el aviso de que ese grupo no existe.",
             acciones=acciones_para(cfg, t, "Unity", "PRUEBA_0-0", "Grupo inventado de prueba"),
         )
         sys.exit(0 if ok else 1)
