@@ -17,6 +17,7 @@
  *   RELAY_SECRETO  texto largo y al azar (el mismo que el secreto RELAY_SECRETO de GitHub)
  *   GH_TOKEN       token de GitHub (solo permiso "Actions: lectura y escritura" en el repo)
  *   GH_REPO        usuario/repositorio, p. ej. Diego558-coder/avisador-grupos-kodland
+ *   NTFY_TOKEN     token de tu cuenta de ntfy.sh (sin él, ntfy bloquea al servicio: error 429)
  *   RELAY_URL      (opcional) la URL /exec de este servicio, si no se detecta sola
  */
 
@@ -94,9 +95,13 @@ function pedirConfirmacion(p, secreto, base) {
 
   var texto = String(p.curso) + '\n🏷️ ' + String(p.grupo) + (info ? '\n' + info : '') +
     '\n\nSi es el grupo correcto, toca el botón. Vale 15 minutos.';
+  var cabeceras = {};
+  var tokenNtfy = PropertiesService.getScriptProperties().getProperty('NTFY_TOKEN');
+  if (tokenNtfy) cabeceras.Authorization = 'Bearer ' + tokenNtfy;
   var r = UrlFetchApp.fetch(NTFY, {
     method: 'post',
     contentType: 'application/json',
+    headers: cabeceras,
     payload: JSON.stringify({
       topic: String(p.tema),
       title: '⚠️ ¿Confirmas la postulación?',

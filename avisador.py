@@ -72,6 +72,8 @@ def cargar_config():
         cfg["ntfy_tema"] = env("NTFY_TEMA")
     if env("NTFY_SERVIDOR"):
         cfg["ntfy_servidor"] = env("NTFY_SERVIDOR")
+    if env("NTFY_TOKEN"):
+        cfg["ntfy_token"] = env("NTFY_TOKEN")
     if env("RELAY_URL"):
         cfg["relay_url"] = env("RELAY_URL")
     if env("RELAY_SECRETO"):
@@ -133,11 +135,15 @@ def notificar(cfg, titulo, mensaje, prioridad=4, tags=("bell",), acciones=None):
     }
     if acciones:
         payload["actions"] = acciones
+    # Con token de cuenta, ntfy limita por usuario y no por dirección de internet
+    cabeceras = {"Content-Type": "application/json"}
+    if cfg.get("ntfy_token"):
+        cabeceras["Authorization"] = f"Bearer {cfg['ntfy_token']}"
     for intento in range(1, 4):
         req = urllib.request.Request(
             cfg.get("ntfy_servidor", "https://ntfy.sh"),
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
+            headers=cabeceras,
             method="POST",
         )
         try:
