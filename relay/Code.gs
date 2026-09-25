@@ -112,7 +112,10 @@ function pedirConfirmacion(p, secreto, base) {
     }),
     muteHttpExceptions: true
   });
-  if (r.getResponseCode() !== 200) throw new Error('ntfy respondió ' + r.getResponseCode());
+  if (r.getResponseCode() !== 200) {
+    throw new Error('ntfy respondió ' + r.getResponseCode() + ' (token: ' + (tokenNtfy ? 'sí, ' + tokenNtfy.length + ' caracteres' : 'NO configurado') + ') ' +
+      String(r.getContentText()).slice(0, 160));
+  }
 }
 
 function firmar(campos, secreto) {
