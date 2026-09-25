@@ -298,6 +298,63 @@ def comparar(anterior, actual):
     return cambios
 
 
+def formatear_grupos(lineas):
+    """Convierte las líneas raw en un formato bonito y legible para ntfy."""
+    grupos = []
+    grupo_actual = {"nombre": "", "horario": "", "inicio": "", "id": ""}
+
+    for linea in lineas:
+        linea = linea.strip()
+        if not linea:
+            continue
+
+        # Nombre del grupo: línea que comienza con [número]
+        if linea.startswith("[") and "]" in linea:
+            # Extrae el nombre limpio
+            # Ej: [1209]Unity Game Developer[None][13-17][90 min]...
+            partes = linea.split("]")
+            if len(partes) > 1:
+                nombre = partes[1]
+                # Limpia los brackets de más
+                nombre = nombre.split("[")[0].strip()
+                if nombre:
+                    if grupo_actual["nombre"]:  # guarda el anterior
+                        grupos.append(grupo_actual)
+                    grupo_actual = {"nombre": nombre, "horario": "", "inicio": "", "id": ""}
+
+        # Horario: línea con 🕐
+        elif "🕐" in linea:
+            grupo_actual["horario"] = linea.replace("🕐", "").strip()
+
+        # Fecha de inicio: línea con 📅
+        elif "📅" in linea:
+            grupo_actual["inicio"] = linea.replace("📅", "").strip()
+
+        # ID del grupo: línea que parece un código (ej: COL13688_MI-11)
+        elif "_" in linea and any(c.isdigit() for c in linea) and len(linea) < 30:
+            grupo_actual["id"] = linea
+
+    if grupo_actual["nombre"]:
+        grupos.append(grupo_actual)
+
+    # Formatea de forma bonita
+    resultado = []
+    for i, g in enumerate(grupos[:10], 1):  # Máximo 10 grupos por notificación
+        resultado.append(f"{i}️⃣ {g['nombre']}")
+        if g["horario"]:
+            resultado.append(f"   🕐 {g['horario']}")
+        if g["inicio"]:
+            resultado.append(f"   📅 {g['inicio']}")
+        if g["id"]:
+            resultado.append(f"   🏷️ {g['id']}")
+        resultado.append("")  # línea en blanco entre grupos
+
+    if len(grupos) > 10:
+        resultado.append(f"… y {len(grupos) - 10} grupos más")
+
+    return "\n".join(resultado)
+
+
 def revisar(cfg, estado):
     log("Revisando...")
     try:
@@ -325,9 +382,7 @@ def revisar(cfg, estado):
     else:
         cambios = comparar(anterior, actual)
         for curso, lineas in cambios.items():
-            cuerpo = "\n".join(lineas[:25])
-            if len(lineas) > 25:
-                cuerpo += f"\n… y {len(lineas) - 25} líneas más"
+            cuerpo = formatear_grupos(lineas)
             if not notificar(cfg, f"🆕 Grupos nuevos: {curso}", cuerpo):
                 # No lo damos por visto: se vuelve a intentar en la próxima revisión
                 no_notificados.add(curso)
