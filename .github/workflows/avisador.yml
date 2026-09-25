@@ -55,12 +55,14 @@ jobs:
         env:
           URL_APP: ${{ secrets.URL_APP }}
           NTFY_TEMA: ${{ secrets.NTFY_TEMA }}
+          TUTORES: ${{ secrets.TUTORES }}
         run: python avisador.py --probar
 
       - name: Vigilar cursos (~5,5 horas, revisando cada ~5 min)
         env:
           URL_APP: ${{ secrets.URL_APP }}
           NTFY_TEMA: ${{ secrets.NTFY_TEMA }}
+          TUTORES: ${{ secrets.TUTORES }}
           SESION_JSON: ${{ secrets.SESION_JSON }}
         run: |
           git config user.name "avisador-bot"
@@ -69,7 +71,7 @@ jobs:
           FALLO=0
           while [ $SECONDS -lt $FIN ]; do
             python avisador.py --una-vez || FALLO=1
-            git add estado.json
+            git add estado*.json
             if ! git diff --cached --quiet; then
               git commit -q -m "Actualiza estado [skip ci]"
               git pull -q --rebase && git push -q || echo "No se pudo guardar estado.json"

@@ -13,6 +13,7 @@ Uso:
 """
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -73,8 +74,33 @@ def cargar_config():
 
     if "PEGA_AQUI" in cfg.get("url_app", "") or not cfg.get("url_app"):
         sys.exit("Falta la URL de la app: ponla en config.json (url_app) o en el secreto URL_APP.")
-    if "CAMBIA" in cfg.get("ntfy_tema", "") or not cfg.get("ntfy_tema"):
-        sys.exit("Falta el tema de ntfy: ponlo en config.json (ntfy_tema) o en el secreto NTFY_TEMA.")
+
+    # Varios tutores: secreto TUTORES (o "tutores" en config.json) con una lista
+    # [{"nombre": "...", "kt_id": "123", "ntfy_tema": "..."}, ...].
+    # Sin eso, funciona como antes con un solo tutor (NTFY_TEMA + la sesión).
+    if env("TUTORES"):
+        try:
+            tutores = json.loads(env("TUTORES"))
+        except json.JSONDecodeError:
+            sys.exit("El secreto TUTORES no es un JSON válido.")
+    elif cfg.get("tutores"):
+        tutores = cfg["tutores"]
+    elif cfg.get("ntfy_tema"):
+        tutores = [{"nombre": "principal", "ntfy_tema": cfg["ntfy_tema"]}]
+    else:
+        tutores = []
+
+    cfg["tutores"] = []
+    for i, t in enumerate(tutores, 1):
+        tema = str(t.get("ntfy_tema") or "").strip()
+        kt = str(t.get("kt_id") or "").strip() or None
+        if not tema or "CAMBIA" in tema:
+            sys.exit(f"Al tutor n.º {i} le falta 'ntfy_tema'.")
+        cfg["tutores"].append(
+            {"nombre": str(t.get("nombre") or f"tutor {i}"), "kt_id": kt, "ntfy_tema": tema}
+        )
+    if not cfg["tutores"]:
+        sys.exit("Falta al menos un tutor: secreto TUTORES, o NTFY_TEMA / ntfy_tema.")
     cfg.setdefault("intervalo_minutos", 5)
     cfg.setdefault("heartbeat_horas", 24)
     cfg.setdefault("cursos_a_vigilar", [])
@@ -126,7 +152,42 @@ def notificar(cfg, titulo, mensaje, prioridad=4, tags=("bell",)):
 
 # ------------------------------------------------------------------ navegador
 
-def abrir_contexto(p, headless):
+def sesion_para(kt_id):
+    """Sesión de la app con el ID de tutor indicado. La app solo guarda ese ID
+    en el navegador (localStorage 'kt_id'), así que basta cambiar ese valor."""
+    sesion = json.loads(SESION_FILE.read_text(encoding="utf-8"))
+    if not kt_id:
+        return sesion
+    for origen in sesion.get("origins", []):
+        for item in origen.get("localStorage", []):
+            if item.get("name") == "kt_id":
+                item["value"] = kt_id
+                return sesion
+    if sesion.get("origins"):
+        sesion["origins"][0].setdefault("localStorage", []).append({"name": "kt_id", "value": kt_id})
+    return sesion
+
+
+def kt_id_de_sesion():
+    try:
+        for origen in json.loads(SESION_FILE.read_text(encoding="utf-8")).get("origins", []):
+            for item in origen.get("localStorage", []):
+                if item.get("name") == "kt_id":
+                    return str(item["value"])
+    except (OSError, ValueError):
+        pass
+    return None
+
+
+def ruta_estado(tutor):
+    """El tutor de la sesión original conserva estado.json; los demás, uno propio."""
+    kt = tutor.get("kt_id")
+    if not kt or kt == kt_id_de_sesion():
+        return ESTADO_FILE
+    return BASE / f"estado_{hashlib.sha1(kt.encode()).hexdigest()[:8]}.json"
+
+
+def abrir_contexto(p, headless, kt_id=None):
     """Devuelve (context, browser). 'browser' es None cuando se usa un perfil
     persistente (no hace falta cerrarlo aparte)."""
     args_anti_deteccion = ["--disable-blink-features=AutomationControlled"]
@@ -137,7 +198,7 @@ def abrir_contexto(p, headless):
         # no en un perfil de Chrome atado al sistema operativo.
         browser = p.chromium.launch(headless=headless, args=args_anti_deteccion)
         ctx = browser.new_context(
-            storage_state=str(SESION_FILE), viewport={"width": 1200, "height": 900}
+            storage_state=sesion_para(kt_id), viewport={"width": 1200, "height": 900}
         )
         return ctx, browser
 
@@ -217,11 +278,11 @@ def texto_estable(frame, max_seg=20):
     return anterior or ""
 
 
-def leer_todos_los_cursos(cfg, headless=True):
+def leer_todos_los_cursos(cfg, headless=True, kt_id=None):
     """Devuelve {curso: [lineas de texto]} o lanza excepción."""
     resultado = {}
     with sync_playwright() as p:
-        ctx, browser = abrir_contexto(p, headless)
+        ctx, browser = abrir_contexto(p, headless, kt_id)
         try:
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
             page.goto(cfg["url_app"], wait_until="domcontentloaded", timeout=60000)
@@ -355,20 +416,23 @@ def formatear_grupos(lineas):
     return "\n".join(resultado)
 
 
-def revisar(cfg, estado):
+def revisar(cfg, estado, tutor):
+    """Revisa la app con el ID de un tutor y avisa a SU tema de ntfy."""
+    ruta = ruta_estado(tutor)
+    cfg = {**cfg, "ntfy_tema": tutor["ntfy_tema"]}
     log("Revisando...")
     try:
-        actual = leer_todos_los_cursos(cfg)
+        actual = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"))
     except RuntimeError as e:
         if str(e) == "SESION":
-            msg = "La sesión de Google expiró. Ejecuta: python avisador.py --login"
+            msg = "No se pudo entrar a la app de Kodland. Revisa que el ID de tutor siga siendo válido."
         else:
             msg = str(e)
         log(f"ERROR: {msg}")
         if not estado.get("error_avisado"):
             notificar(cfg, "Avisador Kodland: problema", msg, prioridad=3, tags=("warning",))
             estado["error_avisado"] = True
-            guardar_json(ESTADO_FILE, estado)
+            guardar_json(ruta, estado)
         return estado
     except Exception as e:
         log(f"ERROR inesperado: {e}")
@@ -411,7 +475,7 @@ def revisar(cfg, estado):
     # Sin "ultima_revision": así estado.json solo cambia cuando hay algo nuevo
     # y el repositorio no se llena de commits cada 5 minutos.
     estado = {"cursos": anterior, "ultimo_heartbeat": heartbeat.isoformat(timespec="seconds")}
-    guardar_json(ESTADO_FILE, estado)
+    guardar_json(ruta, estado)
     return estado
 
 
@@ -457,29 +521,40 @@ def main():
 
     if args.login:
         return modo_login(cfg)
+    tutores = cfg["tutores"]
     if args.probar:
-        ok = notificar(cfg, "Avisador Kodland ✅", "¡Las notificaciones funcionan!")
+        # Solo al primer tutor (el tuyo): así no molestas al resto al probar.
+        ok = notificar(
+            {**cfg, "ntfy_tema": tutores[0]["ntfy_tema"]},
+            "Avisador Kodland ✅",
+            "¡Las notificaciones funcionan!",
+        )
         sys.exit(0 if ok else 1)
     if args.reset:
-        if ESTADO_FILE.exists():
-            ESTADO_FILE.unlink()
+        for t in tutores:
+            ruta_estado(t).unlink(missing_ok=True)
         print("Estado borrado. La próxima revisión volverá a crear la línea base.")
         return
     if args.ver:
         global leer_todos_los_cursos
         original = leer_todos_los_cursos
-        leer_todos_los_cursos = lambda c: original(c, headless=False)
+        leer_todos_los_cursos = lambda c, kt_id=None: original(c, headless=False, kt_id=kt_id)
 
-    estado = cargar_json(ESTADO_FILE, {})
+    def revisar_todos():
+        for i, t in enumerate(tutores, 1):
+            if len(tutores) > 1:
+                log(f"— Tutor {i} de {len(tutores)} —")
+            revisar(cfg, cargar_json(ruta_estado(t), {}), t)
+
     if args.una_vez:
-        revisar(cfg, estado)
+        revisar_todos()
         # Código de salida 1 si algo no se pudo notificar: en GitHub Actions la
         # ejecución queda en rojo en vez de "verde" silencioso.
         sys.exit(1 if NOTIFICACIONES_FALLIDAS else 0)
 
     log(f"Avisador iniciado. Revisando cada {cfg['intervalo_minutos']} min. Ctrl+C para salir.")
     while True:
-        estado = revisar(cfg, estado)
+        revisar_todos()
         time.sleep(cfg["intervalo_minutos"] * 60)
 
 
