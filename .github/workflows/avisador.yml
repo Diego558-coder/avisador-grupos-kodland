@@ -1,12 +1,17 @@
 name: Avisador de grupos Kodland
 
+# El cron de GitHub no es confiable para intervalos cortos: con "*/5" solo
+# corría cada 3-6 horas. Por eso cada ejecución se queda vigilando ~5,5 horas
+# (revisa cada ~5 min) y al terminar lanza la siguiente. El cron por hora queda
+# solo como respaldo por si esa cadena se corta.
 on:
   schedule:
-    - cron: "*/5 * * * *"   # cada 5 minutos (GitHub puede retrasarlo un poco en horas de mucho tráfico)
-  workflow_dispatch: {}       # permite lanzarlo a mano desde la pestaña Actions
+    - cron: "17 * * * *"
+  workflow_dispatch: {}
 
 permissions:
-  contents: write            # necesario para guardar el "estado.json" actualizado
+  contents: write            # guardar estado.json
+  actions: write             # lanzar la siguiente ejecución
 
 concurrency:
   group: avisador-kodland
@@ -15,7 +20,7 @@ concurrency:
 jobs:
   revisar:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 350
     steps:
       - name: Descargar el código
         uses: actions/checkout@v4
@@ -43,21 +48,30 @@ jobs:
         if: steps.cache-playwright.outputs.cache-hit == 'true'
         run: python -m playwright install-deps chromium
 
-      - name: Revisar cursos y notificar si hay novedades
+      - name: Vigilar cursos (~5,5 horas, revisando cada ~5 min)
         env:
           URL_APP: ${{ secrets.URL_APP }}
           NTFY_TEMA: ${{ secrets.NTFY_TEMA }}
           SESION_JSON: ${{ secrets.SESION_JSON }}
-        run: python avisador.py --una-vez
-
-      - name: Guardar el estado actualizado
         run: |
           git config user.name "avisador-bot"
           git config user.email "avisador-bot@users.noreply.github.com"
-          git add estado.json
-          if ! git diff --cached --quiet; then
-            git commit -m "Actualiza estado [skip ci]"
-            git push
-          else
-            echo "Sin cambios en estado.json"
-          fi
+          FIN=$((SECONDS + 330 * 60))
+          FALLO=0
+          while [ $SECONDS -lt $FIN ]; do
+            python avisador.py --una-vez || FALLO=1
+            git add estado.json
+            if ! git diff --cached --quiet; then
+              git commit -q -m "Actualiza estado [skip ci]"
+              git pull -q --rebase && git push -q || echo "No se pudo guardar estado.json"
+            fi
+            # Si ntfy falla, cortamos para que la ejecución quede en rojo y se note
+            if [ $FALLO = 1 ]; then exit 1; fi
+            sleep 180
+          done
+
+      - name: Lanzar la siguiente ejecución
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run avisador.yml --ref main

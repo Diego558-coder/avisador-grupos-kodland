@@ -19,7 +19,7 @@ import sys
 import time
 import urllib.request
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -57,14 +57,19 @@ def cargar_config():
 
     # En GitHub Actions los datos sensibles llegan por variables de entorno
     # (Secrets), nunca escritos en el repositorio público.
-    if os.environ.get("URL_APP"):
-        cfg["url_app"] = os.environ["URL_APP"]
-    if os.environ.get("NTFY_TEMA"):
-        cfg["ntfy_tema"] = os.environ["NTFY_TEMA"]
-    if os.environ.get("NTFY_SERVIDOR"):
-        cfg["ntfy_servidor"] = os.environ["NTFY_SERVIDOR"]
-    if os.environ.get("SESION_JSON") and not SESION_FILE.exists():
-        SESION_FILE.write_text(os.environ["SESION_JSON"], encoding="utf-8")
+    # .strip(): al pegar un secreto es fácil que se cuele un espacio o salto de
+    # línea, y con eso ntfy publica en otro tema (o rechaza el mensaje).
+    def env(nombre):
+        return (os.environ.get(nombre) or "").strip()
+
+    if env("URL_APP"):
+        cfg["url_app"] = env("URL_APP")
+    if env("NTFY_TEMA"):
+        cfg["ntfy_tema"] = env("NTFY_TEMA")
+    if env("NTFY_SERVIDOR"):
+        cfg["ntfy_servidor"] = env("NTFY_SERVIDOR")
+    if env("SESION_JSON") and not SESION_FILE.exists():
+        SESION_FILE.write_text(env("SESION_JSON"), encoding="utf-8")
 
     if "PEGA_AQUI" in cfg.get("url_app", "") or not cfg.get("url_app"):
         sys.exit("Falta la URL de la app: ponla en config.json (url_app) o en el secreto URL_APP.")
@@ -79,7 +84,12 @@ def cargar_config():
 
 # ---------------------------------------------------------------- notificación
 
+NOTIFICACIONES_FALLIDAS = 0
+
+
 def notificar(cfg, titulo, mensaje, prioridad=4, tags=("bell",)):
+    """Envía a ntfy con reintentos. Devuelve True si llegó."""
+    global NOTIFICACIONES_FALLIDAS
     payload = {
         "topic": cfg["ntfy_tema"],
         "title": titulo,
@@ -88,17 +98,30 @@ def notificar(cfg, titulo, mensaje, prioridad=4, tags=("bell",)):
         "tags": list(tags),
         "click": cfg["url_app"],
     }
-    req = urllib.request.Request(
-        cfg.get("ntfy_servidor", "https://ntfy.sh"),
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        urllib.request.urlopen(req, timeout=15).read()
-        log(f"Notificación enviada: {titulo}")
-    except Exception as e:
-        log(f"ERROR enviando notificación: {e}")
+    for intento in range(1, 4):
+        req = urllib.request.Request(
+            cfg.get("ntfy_servidor", "https://ntfy.sh"),
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req, timeout=15).read()
+            log(f"Notificación enviada: {titulo}")
+            return True
+        except Exception as e:
+            detalle = ""
+            if hasattr(e, "read"):
+                try:
+                    detalle = e.read().decode("utf-8", "replace")[:300]
+                except Exception:
+                    pass
+            log(f"ERROR enviando notificación (intento {intento}/3): {e} {detalle}")
+            time.sleep(5 * intento)
+    # El tema es secreto: solo mostramos su largo para poder diagnosticar
+    log(f"No se pudo notificar. Largo del tema ntfy: {len(cfg['ntfy_tema'])} caracteres.")
+    NOTIFICACIONES_FALLIDAS += 1
+    return False
 
 
 # ------------------------------------------------------------------ navegador
@@ -227,6 +250,8 @@ def leer_todos_los_cursos(cfg, headless=True):
                 "— elige un curso —",
                 "grupos",
                 "mis postulaciones",
+                "← volver a cursos",
+                "postularme",
             }
 
             for o in opciones:
@@ -293,9 +318,8 @@ def revisar(cfg, estado):
         return estado
 
     anterior = estado.get("cursos", {})
-    ahora = datetime.now()
-    heartbeat_horas = float(cfg.get("heartbeat_horas", 24))
-    heartbeat_ultimo = estado.get("ultimo_heartbeat")
+    ahora = datetime.now(timezone.utc)
+    no_notificados = set()
     if not anterior:
         log(f"Primera revisión: guardada línea base de {len(actual)} cursos (sin notificar).")
     else:
@@ -304,32 +328,44 @@ def revisar(cfg, estado):
             cuerpo = "\n".join(lineas[:25])
             if len(lineas) > 25:
                 cuerpo += f"\n… y {len(lineas) - 25} líneas más"
-            notificar(cfg, f"🆕 Grupos nuevos: {curso}", cuerpo)
+            if not notificar(cfg, f"🆕 Grupos nuevos: {curso}", cuerpo):
+                # No lo damos por visto: se vuelve a intentar en la próxima revisión
+                no_notificados.add(curso)
         if not cambios:
             log("Sin novedades.")
-            try:
-                ultima = datetime.fromisoformat(estado.get("ultima_revision", "1970-01-01T00:00:00"))
-                if heartbeat_ultimo is None and (ahora - ultima).total_seconds() >= heartbeat_horas * 3600:
-                    notificar(
-                        cfg,
-                        "Avisador Kodland: heartbeat",
-                        f"El sistema sigue activo. Última revisión: {estado.get('ultima_revision', 'sin dato')}",
-                        prioridad=3,
-                        tags=("signal_strength",),
-                    )
-                    estado["ultimo_heartbeat"] = ahora.isoformat(timespec="seconds")
-            except ValueError:
-                pass
+
+    # Aviso de "sigo activo" cada N horas: si un día no llega, algo falló.
+    heartbeat = leer_fecha(estado.get("ultimo_heartbeat"))
+    if heartbeat is None:
+        heartbeat = ahora  # empieza a contar desde ahora, sin avisar
+    elif (ahora - heartbeat).total_seconds() >= float(cfg["heartbeat_horas"]) * 3600:
+        total = sum(len(v) for v in actual.values())
+        if notificar(
+            cfg,
+            "Avisador Kodland: sigo activo",
+            f"Revisando {len(actual)} cursos ({total} líneas visibles ahora).",
+            prioridad=2,
+            tags=("signal_strength",),
+        ):
+            heartbeat = ahora
 
     # Si un curso desaparece temporalmente, conservamos su último estado
-    anterior.update(actual)
-    estado = {
-        "cursos": anterior,
-        "ultima_revision": ahora.isoformat(timespec="seconds"),
-        "ultimo_heartbeat": estado.get("ultimo_heartbeat"),
-    }
+    for curso, lineas in actual.items():
+        if curso not in no_notificados:
+            anterior[curso] = lineas
+    # Sin "ultima_revision": así estado.json solo cambia cuando hay algo nuevo
+    # y el repositorio no se llena de commits cada 5 minutos.
+    estado = {"cursos": anterior, "ultimo_heartbeat": heartbeat.isoformat(timespec="seconds")}
     guardar_json(ESTADO_FILE, estado)
     return estado
+
+
+def leer_fecha(texto):
+    try:
+        fecha = datetime.fromisoformat(texto)
+    except (TypeError, ValueError):
+        return None
+    return fecha if fecha.tzinfo else fecha.replace(tzinfo=timezone.utc)
 
 
 def modo_login(cfg):
@@ -367,7 +403,8 @@ def main():
     if args.login:
         return modo_login(cfg)
     if args.probar:
-        return notificar(cfg, "Avisador Kodland ✅", "¡Las notificaciones funcionan!")
+        ok = notificar(cfg, "Avisador Kodland ✅", "¡Las notificaciones funcionan!")
+        sys.exit(0 if ok else 1)
     if args.reset:
         if ESTADO_FILE.exists():
             ESTADO_FILE.unlink()
@@ -381,7 +418,9 @@ def main():
     estado = cargar_json(ESTADO_FILE, {})
     if args.una_vez:
         revisar(cfg, estado)
-        return
+        # Código de salida 1 si algo no se pudo notificar: en GitHub Actions la
+        # ejecución queda en rojo en vez de "verde" silencioso.
+        sys.exit(1 if NOTIFICACIONES_FALLIDAS else 0)
 
     log(f"Avisador iniciado. Revisando cada {cfg['intervalo_minutos']} min. Ctrl+C para salir.")
     while True:
