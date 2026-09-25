@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avisador de Grupos Kodland</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .step {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        input {
+            border: 2px solid #e0e0e0;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .info-box {
+            background: #f5f5f5;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+        }
+
+        .success {
+            background: #e8f5e9;
+            border-left-color: #4caf50;
+            color: #2e7d32;
+        }
+
+        .warning {
+            background: #fff3e0;
+            border-left-color: #ff9800;
+            color: #e65100;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 25%;
+            transition: width 0.3s ease;
+        }
+
+        .error {
+            color: #d32f2f;
+            background: #ffebee;
+            border-left-color: #d32f2f;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 13px;
+        }
+
+        .step-indicator {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .step-indicator .active {
+            color: #667eea;
+        }
+
+        code {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: "Monaco", "Courier New", monospace;
+            color: #d32f2f;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <div class="header">
+            <div class="logo">🚀</div>
+            <h1>Avisador Kodland</h1>
+            <p class="subtitle">Recibe notificaciones cuando se publican grupos nuevos</p>
+        </div>
+
+        <div class="step-indicator">
+            Paso <span id="currentStep">1</span> de 4
+        </div>
+
+        <!-- Paso 1: ID de Tutor -->
+        <div class="step active" id="step1">
+            <div class="info-box">
+                Tu ID de tutor es el que usas para iniciar sesión en Kodland.
+            </div>
+            <div class="form-group">
+                <label for="tutorId">ID de Tutor:</label>
+                <input
+                    type="text"
+                    id="tutorId"
+                    placeholder="Tu ID de tutor (ej: diego_codigo)"
+                    autocomplete="off"
+                >
+            </div>
+            <button onclick="siguientePaso1()">Continuar</button>
+            <div id="error1" class="error" style="display: none;"></div>
+        </div>
+
+        <!-- Paso 2: Generar Tema -->
+        <div class="step" id="step2">
+            <div class="info-box success">
+                ✅ ID registrado. Ahora generamos tu tema de notificaciones único.
+            </div>
+            <div class="form-group">
+                <label>Tu tema de notificaciones:</label>
+                <input
+                    type="text"
+                    id="temaNotif"
+                    readonly
+                    style="background: #f5f5f5; cursor: not-allowed;"
+                >
+                <small style="color: #999; margin-top: 5px; display: block;">
+                    Este código es privado. Nadie más puede ver tus notificaciones.
+                </small>
+            </div>
+            <button onclick="siguientePaso2()">Siguiente: Iniciar Sesión</button>
+        </div>
+
+        <!-- Paso 3: Login en Kodland -->
+        <div class="step" id="step3">
+            <div class="info-box warning">
+                Se abrirá una ventana de Chrome. Inicia sesión con tu cuenta de Kodland y confirma.
+            </div>
+            <div class="form-group">
+                <button onclick="abrirLoginChrome()" style="background: #ff6b6b;">
+                    🔑 Abrir Chrome para Iniciar Sesión
+                </button>
+            </div>
+            <div class="loading" id="statusLogin" style="display: none;">
+                <span class="spinner"></span>
+                Esperando que confirmes en Chrome...
+            </div>
+            <div id="error3" class="error" style="display: none;"></div>
+        </div>
+
+        <!-- Paso 4: Confirmación -->
+        <div class="step" id="step4">
+            <div class="info-box success">
+                ✅ ¡Todo listo! Tu avisador ya está activo.
+            </div>
+            <div style="background: #f5f5f5; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+                <p style="margin-bottom: 10px; color: #333; font-weight: 500;">
+                    Resumen de tu configuración:
+                </p>
+                <p style="color: #666; font-size: 13px; line-height: 1.8;">
+                    • <strong>ID:</strong> <code id="resumenId"></code><br>
+                    • <strong>Tema:</strong> <code id="resumenTema"></code><br>
+                    • <strong>Revisiones:</strong> Cada 5 minutos<br>
+                    • <strong>Notificaciones:</strong> A tu celular (ntfy)
+                </p>
+            </div>
+            <button onclick="finalizarSetup()" style="background: #4caf50;">
+                ✨ Finalizar y Activar Avisador
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            tutorId: "",
+            tema: "",
+            sessionId: "",
+        };
+
+        function actualizarProgreso(paso) {
+            const porcentajes = [25, 50, 75, 100];
+            document.getElementById("progressFill").style.width = porcentajes[paso - 1] + "%";
+            document.getElementById("currentStep").textContent = paso;
+            mostrarPaso(paso);
+        }
+
+        function mostrarPaso(numero) {
+            document.querySelectorAll(".step").forEach((el, idx) => {
+                el.classList.remove("active");
+                if (idx + 1 === numero) el.classList.add("active");
+            });
+        }
+
+        async function siguientePaso1() {
+            const tutorId = document.getElementById("tutorId").value.trim();
+            const errorDiv = document.getElementById("error1");
+
+            if (!tutorId || tutorId.length < 3) {
+                errorDiv.textContent = "Por favor ingresa un ID válido (mínimo 3 caracteres)";
+                errorDiv.style.display = "block";
+                return;
+            }
+
+            state.tutorId = tutorId;
+            errorDiv.style.display = "none";
+
+            // Generar tema
+            try {
+                const res = await fetch("/api/generar-tema", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ tutor_id: tutorId }),
+                });
+                const data = await res.json();
+                state.tema = data.tema;
+                document.getElementById("temaNotif").value = state.tema;
+                actualizarProgreso(2);
+            } catch (e) {
+                errorDiv.textContent = "Error: " + e.message;
+                errorDiv.style.display = "block";
+            }
+        }
+
+        async function siguientePaso2() {
+            try {
+                const res = await fetch("/api/iniciar-login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        tutor_id: state.tutorId,
+                        tema: state.tema,
+                    }),
+                });
+                const data = await res.json();
+                state.sessionId = data.session_id;
+                actualizarProgreso(3);
+            } catch (e) {
+                document.getElementById("error3").textContent = "Error: " + e.message;
+                document.getElementById("error3").style.display = "block";
+            }
+        }
+
+        function abrirLoginChrome() {
+            // En producción, aquí se abriría una ventana de Chrome controlada
+            // Por ahora, simulamos que se abre el navegador a la app de Kodland
+            const urlApp = "https://script.google.com/macros/s/AKfycby5vAk1YOb9Nv7-8c0c7ZMmk-FrLxKc317l_L3NnPgtaYJMeF2NtdLgIBK4qMKUNNm5pQ/exec";
+            window.open(urlApp, "_blank");
+
+            document.getElementById("statusLogin").style.display = "block";
+
+            // Simular que se guardó la sesión después de 5 segundos
+            setTimeout(() => {
+                document.getElementById("resumenId").textContent = state.tutorId;
+                document.getElementById("resumenTema").textContent = state.tema;
+                actualizarProgreso(4);
+            }, 5000);
+        }
+
+        function finalizarSetup() {
+            alert("¡Avisador activado! 🎉\n\nYa estás recibiendo notificaciones en: " + state.tema);
+            // En producción, aquí se crearía el repo en GitHub y se configurarían los secretos
+        }
+    </script>
+</body>
+</html>
