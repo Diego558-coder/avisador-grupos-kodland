@@ -309,7 +309,6 @@
       "🕐 Domingo 15:00 COL (21:00 ESP)",
       "📅 Inicia: 25/10/2026",
       "COL14281_DO-15",
-      "✓ Ya te postulaste",
       "[2133]Minecraft Craftforge Intermediate[2026][10-12][90 min][40 L][LatAm][in progress]",
       "🕐 Miércoles 18:00 COL (0:00 ESP)",
       "📅 Inicia: 14/10/2026",
@@ -389,6 +388,5 @@
       "COL14285_DO-12"
     ]
   },
-  "ultimo_heartbeat": "2026-09-25T00:16:09+00:00",
-  "error_avisado": true
+  "ultimo_heartbeat": "2026-09-25T00:16:09+00:00"
 }
