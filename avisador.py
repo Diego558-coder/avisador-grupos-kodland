@@ -123,6 +123,17 @@ def cargar_config():
 NOTIFICACIONES_FALLIDAS = 0
 
 
+def cuota_ntfy(cfg):
+    """Envíos que le quedan hoy a esta conexión en ntfy (el límite es por dirección
+    de internet, 250 al día). None si no se pudo consultar."""
+    try:
+        url = cfg.get("ntfy_servidor", "https://ntfy.sh").rstrip("/") + "/v1/account"
+        datos = json.loads(urllib.request.urlopen(url, timeout=10).read().decode("utf-8"))
+        return int(datos["stats"]["messages_remaining"])
+    except Exception:
+        return None
+
+
 def notificar(cfg, titulo, mensaje, prioridad=4, tags=("bell",), acciones=None):
     """Envía a ntfy con reintentos. Devuelve True si llegó."""
     global NOTIFICACIONES_FALLIDAS
@@ -158,6 +169,11 @@ def notificar(cfg, titulo, mensaje, prioridad=4, tags=("bell",), acciones=None):
                     detalle = e.read().decode("utf-8", "replace")[:300]
                 except Exception:
                     pass
+            if "42908" in detalle:
+                # Cuota diaria agotada: reintentar ahora no sirve. Lo que no se avisó
+                # queda pendiente y se reenvía solo cuando la cuota se reinicia.
+                log("Cuota diaria de ntfy agotada: los avisos pendientes se reenviarán después.")
+                return False
             log(f"ERROR enviando notificación (intento {intento}/3): {e} {detalle}")
             time.sleep(5 * intento)
     # El tema es secreto: solo mostramos su largo para poder diagnosticar
@@ -549,7 +565,12 @@ def avisar_cambios(cfg, tutor, curso, lineas):
     """Un aviso por grupo nuevo, cada uno con su botón. Devuelve las líneas que
     NO se pudieron avisar, para que se reintenten en la próxima revisión."""
     grupos = parsear_grupos(lineas)
-    if not grupos or len(grupos) > MAX_AVISOS_POR_CURSO or any(not g["id"] for g in grupos):
+    # Con mucha cuota se avisa grupo por grupo (cada uno con su botón); con poca,
+    # un solo aviso por curso, para no quedarse sin envíos a mitad del día.
+    limite, restante = MAX_AVISOS_POR_CURSO, cuota_ntfy(cfg)
+    if restante is not None:
+        limite = 15 if restante >= 150 else (MAX_AVISOS_POR_CURSO if restante >= 40 else 0)
+    if not grupos or len(grupos) > limite or any(not g["id"] for g in grupos):
         cuerpo = formatear_grupos(grupos) or "\n".join(lineas[:15])
         ok = notificar(cfg, f"🆕 Grupos nuevos: {curso}", cuerpo,
                        acciones=acciones_para(cfg, tutor, curso, None))
@@ -617,7 +638,7 @@ def revisar(cfg, estado, tutor):
         if notificar(
             cfg,
             "Avisador Kodland: sigo activo",
-            f"Revisando {len(actual)} cursos ({total} líneas visibles ahora).",
+            f"Revisando {len(actual)} cursos ({total} líneas visibles ahora)." + _texto_cuota(cfg),
             prioridad=2,
             tags=("signal_strength",),
         ):
@@ -631,6 +652,11 @@ def revisar(cfg, estado, tutor):
     estado = {"cursos": anterior, "ultimo_heartbeat": heartbeat.isoformat(timespec="seconds")}
     guardar_json(ruta, estado)
     return estado
+
+
+def _texto_cuota(cfg):
+    restante = cuota_ntfy(cfg)
+    return "" if restante is None else f" Avisos de ntfy que quedan hoy: {restante} de 250."
 
 
 def leer_fecha(texto):
