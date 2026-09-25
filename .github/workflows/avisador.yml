@@ -48,6 +48,15 @@ jobs:
         if: steps.cache-playwright.outputs.cache-hit == 'true'
         run: python -m playwright install-deps chromium
 
+      # Solo cuando lo lanzas tú a mano (no en la cadena automática): confirma
+      # que ntfy recibe mensajes desde GitHub. Si falla, la ejecución queda en rojo.
+      - name: Notificación de prueba
+        if: github.event_name == 'workflow_dispatch' && github.actor != 'github-actions[bot]'
+        env:
+          URL_APP: ${{ secrets.URL_APP }}
+          NTFY_TEMA: ${{ secrets.NTFY_TEMA }}
+        run: python avisador.py --probar
+
       - name: Vigilar cursos (~5,5 horas, revisando cada ~5 min)
         env:
           URL_APP: ${{ secrets.URL_APP }}
