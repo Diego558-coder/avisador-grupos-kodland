@@ -449,7 +449,7 @@ def enlace_postular(cfg, tutor, curso, grupo_id):
     datos = "|".join([str(tutor["pos"]), curso, grupo_id, ts])
     firma = hmac.new(secreto.encode("utf-8"), datos.encode("utf-8"), hashlib.sha256).hexdigest()
     consulta = urllib.parse.urlencode(
-        {"t": tutor["pos"], "c": curso, "g": grupo_id, "ts": ts, "s": firma},
+        {"tutor": tutor["pos"], "curso": curso, "grupo": grupo_id, "ts": ts, "firma": firma},
         quote_via=urllib.parse.quote,
     )
     return f"{base}?{consulta}"

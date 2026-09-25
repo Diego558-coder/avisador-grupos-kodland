@@ -6,6 +6,8 @@
  * el secreto de la firma viven en "Propiedades de la secuencia de comandos",
  * nunca en el aviso ni en el repositorio.
  *
+ * (No uses parámetros llamados 'c' en la URL: Apps Script los rechaza.)
+ *
  * Propiedades necesarias (Configuración del proyecto > Propiedades de la secuencia):
  *   RELAY_SECRETO  texto largo y al azar (el mismo que el secreto RELAY_SECRETO de GitHub)
  *   GH_TOKEN       token de GitHub (solo permiso "Actions: lectura y escritura" en el repo)
@@ -27,9 +29,9 @@ function doGet(e) {
     var edad = Date.now() / 1000 - Number(p.ts);
     if (!(edad > -300 && edad < VIGENCIA_SEGUNDOS)) throw new Error('el enlace venció');
 
-    var datos = [p.t, p.c, p.g, p.ts].join('|');
+    var datos = [p.tutor, p.curso, p.grupo, p.ts].join('|');
     var firma = aHex(Utilities.computeHmacSha256Signature(datos, secreto));
-    if (!iguales(firma, String(p.s || ''))) throw new Error('enlace no válido');
+    if (!iguales(firma, String(p.firma || ''))) throw new Error('enlace no válido');
 
     var r = UrlFetchApp.fetch(
       'https://api.github.com/repos/' + repo + '/actions/workflows/postular.yml/dispatches',
@@ -43,7 +45,7 @@ function doGet(e) {
         },
         payload: JSON.stringify({
           ref: 'main',
-          inputs: { tutor: String(p.t), curso: String(p.c), grupo: String(p.g) }
+          inputs: { tutor: String(p.tutor), curso: String(p.curso), grupo: String(p.grupo) }
         }),
         muteHttpExceptions: true
       }
