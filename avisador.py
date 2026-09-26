@@ -513,12 +513,24 @@ def revisar(cfg, estado, tutor):
         ):
             heartbeat = ahora
 
-    # Si un curso desaparece temporalmente, conservamos su último estado
+    # Si un curso da 0 grupos, puede ser real o solo la app cargando lento en esa
+    # revisión (ya pasó: "Unity" se leyó vacío una vez y en la siguiente reaparecieron
+    # sus 28 grupos, todos avisados como "nuevos" otra vez). Por eso una lectura vacía
+    # sola no borra la memoria: hacen falta 2 seguidas para darla por real.
+    vacios = estado.get("vacios", {})
     for curso, lineas in actual.items():
-        anterior[curso] = quitar_lineas(lineas, pendientes.get(curso, []))
+        if lineas or curso not in anterior or not anterior[curso]:
+            anterior[curso] = quitar_lineas(lineas, pendientes.get(curso, []))
+            vacios.pop(curso, None)
+        elif vacios.get(curso, 0) >= 1:
+            anterior[curso] = []
+            vacios.pop(curso, None)
+        else:
+            vacios[curso] = vacios.get(curso, 0) + 1
+            log(f"  {curso}: dio 0 grupos; se confirma en la próxima revisión antes de olvidar los anteriores.")
     # Sin "ultima_revision": así estado.json solo cambia cuando hay algo nuevo
     # y el repositorio no se llena de commits cada 5 minutos.
-    estado = {"cursos": anterior, "ultimo_heartbeat": heartbeat.isoformat(timespec="seconds")}
+    estado = {"cursos": anterior, "vacios": vacios, "ultimo_heartbeat": heartbeat.isoformat(timespec="seconds")}
     guardar_json(ruta, estado)
     return estado
 
