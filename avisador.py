@@ -29,6 +29,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
+import filtro
 import tg
 
 try:
@@ -928,6 +929,43 @@ def modo_listar(cfg, args):
               prioridad=3)
 
 
+def estado_actual(tutor):
+    """Los grupos que el vigilante vio en su última revisión. En GitHub se lee la
+    versión más reciente del repositorio (el vigilante la actualiza sola); si no se
+    puede, se usa la copia local."""
+    ruta = ruta_estado(tutor)
+    repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    if repo:
+        try:
+            url = f"https://raw.githubusercontent.com/{repo}/main/{ruta.name}"
+            datos = json.loads(urllib.request.urlopen(url, timeout=10).read().decode("utf-8"))
+            if datos.get("cursos"):
+                return datos
+        except Exception:
+            pass
+    return cargar_json(ruta, {})
+
+
+def buscar_grupos(cfg, tutor, texto):
+    """Filtra los grupos actuales por día y hora (ver filtro.py) para el bot de Telegram."""
+    filtros = filtro.parsear_consulta(texto)
+    if not filtros:
+        return {"error": "Dime qué días y horas puedes. Ejemplo: /grupos sábado y domingo de 8 a 12\nEscribe /ayuda para ver más."}
+    grupos = [(curso, g)
+              for curso, lineas in estado_actual(tutor).get("cursos", {}).items()
+              for g in parsear_grupos(lineas) if g["id"]]
+    si, sin_hora = filtro.buscar(grupos, filtros)
+    if not si and all(not f.dias and f.ini is None for f in filtros):
+        # Ni días ni horas y ninguna coincidencia con un curso: no era una búsqueda
+        return {"error": "No entendí. Dime qué días y horas puedes, por ejemplo: /grupos sábado 8 a 12\nEscribe /ayuda para ver más."}
+    return {
+        "resumen": filtro.explicar(filtros),
+        "total": len(grupos),
+        "sin_hora": len(sin_hora),
+        "grupos": [(curso, formatear_grupo(g), g["id"]) for curso, g in si],
+    }
+
+
 def modo_bot(cfg, args):
     """Atiende los toques de los botones de Telegram durante --minutos."""
     if not cfg.get("telegram_token"):
@@ -946,6 +984,7 @@ def modo_bot(cfg, args):
             log, minutos=float(args.minutos or 330),
             al_iniciar=lambda: cal.preparar_todos(tutores_bot),
             en_reposo=lambda: cal.mantener(tutores_bot),
+            buscar_fn=buscar_grupos,
         )
     finally:
         cal.cerrar()

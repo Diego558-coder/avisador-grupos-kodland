@@ -186,33 +186,82 @@ def _atender_toque(cfg, cq, chats, postular_fn, log):
         responder("Botón no válido.")
 
 
-def _atender_mensaje(cfg, m, chats, log):
-    """/start y cualquier texto: responde quién eres. A un chat desconocido le dice
-    su ID, para poder añadirlo a la configuración (sin darle acceso a nada)."""
+MAX_RESULTADOS = 20
+
+
+def _buscar(cfg, chat, tutor, texto, buscar_fn):
+    """Filtra los grupos por día y hora y manda cada coincidencia con su botón."""
+    token = cfg["telegram_token"]
+    r = buscar_fn(cfg, tutor, texto)
+    if r.get("error"):
+        return enviar(token, chat, "🔎 No entendí", r["error"], silencioso=True)
+    grupos, extra = r["grupos"], r.get("sin_hora", 0)
+    nota = f"\n({extra} grupos no traen hora y no se pudieron comparar: míralos en la app.)" if extra else ""
+    if not grupos:
+        return enviar(token, chat, f"🔎 {r['resumen']}",
+                      f"No encontré grupos con ese horario, de {r['total']} que hay ahora. "
+                      f"Prueba con más días o una ventana más amplia.{nota}", silencioso=True)
+    mostrar = grupos[:MAX_RESULTADOS]
+    enviar(token, chat, f"🔎 {r['resumen']}",
+           f"{len(grupos)} grupos caben en ese horario (de {r['total']} que hay ahora)."
+           + (f" Te muestro los primeros {len(mostrar)}: acota con un curso o una franja." if len(grupos) > len(mostrar) else "")
+           + nota, silencioso=True)
+    for curso, texto_grupo, gid in mostrar:
+        enviar(token, chat, f"📋 {curso}", texto_grupo,
+               botones_grupo(tutor["pos"], curso, gid, cfg["url_app"]), silencioso=True)
+        time.sleep(1.1)  # Telegram admite ~1 mensaje por segundo en un mismo chat
+
+
+def _atender_mensaje(cfg, m, chats, log, buscar_fn=None):
+    """/start, /ayuda, /grupos ... y texto libre. A un chat desconocido le dice su ID,
+    para poder añadirlo a la configuración (sin darle acceso a nada)."""
     token, chat = cfg["telegram_token"], str((m.get("chat") or {}).get("id", ""))
     if not chat:
         return
-    if chat in chats:
+    tutor = chats.get(chat)
+    if tutor is None:
+        return enviar(token, chat, "Tu ID de chat", f"{chat}\nPásaselo a quien configura el avisador.", silencioso=True)
+    texto = (m.get("text") or "").strip()
+    comando = texto.split()[0].split("@")[0].lower() if texto.startswith("/") else ""
+    if comando == "/start":
         enviar(token, chat, "✅ Conectado",
-               "Aquí te llegarán los grupos nuevos de Kodland, con botones para postularte.", silencioso=True)
+               "Aquí te llegarán los grupos nuevos de Kodland, con botones para postularte.\n\n" + _ayuda(), silencioso=True)
+    elif comando in ("/ayuda", "/help"):
+        enviar(token, chat, "🔎 Filtrar grupos", _ayuda(), silencioso=True)
+    elif buscar_fn is None:
+        enviar(token, chat, "🔎 Filtrar grupos", "Esta función no está disponible ahora.", silencioso=True)
+    elif comando in ("", "/grupos", "/buscar", "/filtrar"):
+        _buscar(cfg, chat, tutor, texto, buscar_fn)
     else:
-        enviar(token, chat, "Tu ID de chat", f"{chat}\nPásaselo a quien configura el avisador.", silencioso=True)
+        enviar(token, chat, "🤔", "No conozco ese comando. Escribe /ayuda.", silencioso=True)
 
 
-def atender(cfg, update, chats, postular_fn, log):
+def _ayuda():
+    import filtro
+    return filtro.AYUDA
+
+
+def atender(cfg, update, chats, postular_fn, log, buscar_fn=None):
     if update.get("callback_query"):
         _atender_toque(cfg, update["callback_query"], chats, postular_fn, log)
     elif update.get("message"):
-        _atender_mensaje(cfg, update["message"], chats, log)
+        _atender_mensaje(cfg, update["message"], chats, log, buscar_fn)
 
 
-def bucle(cfg, chats, postular_fn, log, minutos=330, al_iniciar=None, en_reposo=None):
+def bucle(cfg, chats, postular_fn, log, minutos=330, al_iniciar=None, en_reposo=None, buscar_fn=None):
     """Escucha los toques durante `minutos`. chats: {id_de_chat: tutor}.
     al_iniciar: se llama una vez antes de escuchar (p. ej. dejar la app lista).
     en_reposo: se llama cuando pasa un rato sin toques (mantenimiento)."""
     token = cfg["telegram_token"]
     try:
         llamar(token, "deleteWebhook")  # si hubiera un webhook, getUpdates no funciona
+    except ErrorTelegram:
+        pass
+    try:  # menú de comandos que aparece al escribir "/" en el chat
+        llamar(token, "setMyCommands", commands=[
+            {"command": "grupos", "description": "Buscar grupos por día y hora"},
+            {"command": "ayuda", "description": "Cómo usar el filtro"},
+        ])
     except ErrorTelegram:
         pass
     if al_iniciar:
@@ -242,7 +291,7 @@ def bucle(cfg, chats, postular_fn, log, minutos=330, al_iniciar=None, en_reposo=
         for u in novedades:
             offset = u["update_id"] + 1
             try:
-                atender(cfg, u, chats, postular_fn, log)
+                atender(cfg, u, chats, postular_fn, log, buscar_fn)
             except Exception as e:
                 log("Error atendiendo un toque: " + type(e).__name__)
     if offset is not None:  # confirma lo atendido para que la próxima ejecución no lo repita
