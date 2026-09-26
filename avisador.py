@@ -707,10 +707,138 @@ def leer_fecha(texto):
     return fecha if fecha.tzinfo else fecha.replace(tzinfo=timezone.utc)
 
 
-def postular(cfg, tutor, curso, grupo, simular=False):
-    """Se postula a un grupo como lo haría una persona: elige el curso, toca
-    'Postularme' y luego 'Confirmar postulación'. Devuelve (ok, mensaje).
-    Con simular=True llega hasta el panel de confirmación y se detiene."""
+def _postular_en_frame(frame, curso, grupo, simular=False):
+    """Hace la postulación sobre una página de la app YA abierta: elige el curso,
+    toca 'Postularme' y luego 'Confirmar postulación'. Devuelve (ok, mensaje)."""
+    try:
+        frame.select_option("select", value="")  # limpia lo que hubiera de una vez anterior
+    except Exception:
+        pass
+    try:
+        frame.select_option("select", label=curso)
+    except Exception:
+        return False, f"No encontré el curso «{curso}» en tu lista."
+    try:
+        frame.wait_for_function(
+            "document.querySelector('#groups .card') || (document.querySelector('#groups .state')"
+            " && !/Buscando/i.test(document.querySelector('#groups .state').textContent))",
+            timeout=20000,
+        )
+    except Exception:
+        pass  # si no se detecta, seguimos: más abajo se avisa si el grupo no está
+
+    tarjetas = frame.locator("#groups > .card")
+    indice = None
+    for i in range(tarjetas.count()):
+        if tarjetas.nth(i).locator(".grp").first.inner_text().strip() == grupo:
+            indice = i
+            break
+    if indice is None:
+        return False, f"El grupo {grupo} ya no está disponible (puede que alguien lo tomara)."
+
+    tarjeta = tarjetas.nth(indice)
+    if tarjeta.locator(".done").count():
+        return True, f"Ya estabas postulado al grupo {grupo} ✓"
+    if frame.locator(f"#h{indice}").count():
+        return False, "Este grupo pide que escribas tu horario: postúlate desde la app."
+
+    tarjeta.locator(".apply").click()
+    confirmar = tarjeta.locator(".send")
+    confirmar.wait_for(state="visible", timeout=10000)
+    if simular:
+        return True, f"SIMULACIÓN: el grupo {grupo} está listo para confirmar. No se envió nada."
+
+    frame.evaluate("document.getElementById('toast').textContent = ''")
+    confirmar.click()
+    respuesta, fin = "", time.time() + 30
+    while time.time() < fin and not respuesta:
+        time.sleep(0.25)
+        respuesta = frame.locator("#toast").inner_text().strip()
+    # Si la postulación se aceptó, la tarjeta pasa a "✓ Ya te postulaste"
+    aceptada = frame.locator("#groups > .card").nth(indice).locator(".done").count() > 0
+    return aceptada, respuesta or ("Postulación enviada" if aceptada else "La app no respondió a tiempo.")
+
+
+class NavegadorCaliente:
+    """Deja un navegador abierto por tutor, con la app ya cargada, para postular en
+    pocos segundos (sin esperar los ~17 s de arrancar el navegador y cargar la app).
+    Se renueva si pasa mucho tiempo o si algo falla."""
+
+    VIDA = 20 * 60  # segundos antes de recargar una página que lleva mucho abierta
+
+    def __init__(self, cfg):
+        self.cfg, self.p, self.sesiones = cfg, None, {}
+
+    def preparar(self, tutor):
+        """Abre (o vuelve a abrir) la app de este tutor. Devuelve el frame, o None."""
+        self.cerrar_uno(tutor)
+        if self.p is None:
+            self.p = sync_playwright().start()
+        ctx, browser = abrir_contexto(self.p, True, tutor.get("kt_id"))
+        frame = None
+        try:
+            page = ctx.new_page()
+            page.goto(self.cfg["url_app"], wait_until="domcontentloaded", timeout=60000)
+            frame = buscar_frame_con_select(page)
+        except Exception:
+            pass
+        if frame is None:
+            cerrar_contexto(ctx, browser)
+            return None
+        self.sesiones[tutor["pos"]] = {"ctx": ctx, "browser": browser, "frame": frame, "desde": time.time()}
+        return frame
+
+    def frame(self, tutor):
+        s = self.sesiones.get(tutor["pos"])
+        if s is None or time.time() - s["desde"] > self.VIDA:
+            return self.preparar(tutor)
+        return s["frame"]
+
+    def preparar_todos(self, tutores):
+        for t in tutores:
+            log(f"Dejando lista la app de un tutor: {'ok' if self.preparar(t) else 'no se pudo'}")
+
+    def mantener(self, tutores):
+        """Se llama en los ratos libres: renueva las páginas que llevan mucho abiertas."""
+        for t in tutores:
+            s = self.sesiones.get(t["pos"])
+            if s is None or time.time() - s["desde"] > self.VIDA:
+                self.preparar(t)
+
+    def cerrar_uno(self, tutor):
+        s = self.sesiones.pop(tutor["pos"], None)
+        if s:
+            cerrar_contexto(s["ctx"], s["browser"])
+
+    def cerrar(self):
+        for pos in list(self.sesiones):
+            s = self.sesiones.pop(pos)
+            cerrar_contexto(s["ctx"], s["browser"])
+        if self.p is not None:
+            try:
+                self.p.stop()
+            except Exception:
+                pass
+            self.p = None
+
+
+def postular(cfg, tutor, curso, grupo, simular=False, calientes=None):
+    """Se postula a un grupo como lo haría una persona. Devuelve (ok, mensaje).
+    Con simular=True llega hasta el panel de confirmación y se detiene.
+    Con `calientes` reutiliza una app ya abierta (mucho más rápido)."""
+    if calientes is not None:
+        for intento in (1, 2):
+            frame = calientes.frame(tutor) if intento == 1 else calientes.preparar(tutor)
+            if frame is None:
+                return False, "No se pudo entrar a la app de Kodland."
+            try:
+                return _postular_en_frame(frame, curso, grupo, simular)
+            except Exception:
+                # La página pudo caducar: se abre otra y se reintenta una vez. Si la
+                # postulación ya se había enviado, el reintento verá 'Ya te postulaste'.
+                calientes.cerrar_uno(tutor)
+        return False, "La app no respondió; inténtalo de nuevo."
+
     with sync_playwright() as p:
         ctx, browser = abrir_contexto(p, True, tutor.get("kt_id"))
         try:
@@ -719,49 +847,7 @@ def postular(cfg, tutor, curso, grupo, simular=False):
             frame = buscar_frame_con_select(page)
             if frame is None:
                 return False, "No se pudo entrar a la app de Kodland."
-            try:
-                frame.select_option("select", label=curso)
-            except Exception:
-                return False, f"No encontré el curso «{curso}» en tu lista."
-            try:
-                frame.wait_for_function(
-                    "document.querySelector('#groups .card') || (document.querySelector('#groups .state')"
-                    " && !/Buscando/i.test(document.querySelector('#groups .state').textContent))",
-                    timeout=20000,
-                )
-            except Exception:
-                pass  # si no se detecta, seguimos: más abajo se avisa si el grupo no está
-
-            tarjetas = frame.locator("#groups > .card")
-            indice = None
-            for i in range(tarjetas.count()):
-                if tarjetas.nth(i).locator(".grp").first.inner_text().strip() == grupo:
-                    indice = i
-                    break
-            if indice is None:
-                return False, f"El grupo {grupo} ya no está disponible (puede que alguien lo tomara)."
-
-            tarjeta = tarjetas.nth(indice)
-            if tarjeta.locator(".done").count():
-                return True, f"Ya estabas postulado al grupo {grupo} ✓"
-            if frame.locator(f"#h{indice}").count():
-                return False, "Este grupo pide que escribas tu horario: postúlate desde la app."
-
-            tarjeta.locator(".apply").click()
-            confirmar = tarjeta.locator(".send")
-            confirmar.wait_for(state="visible", timeout=10000)
-            if simular:
-                return True, f"SIMULACIÓN: el grupo {grupo} está listo para confirmar. No se envió nada."
-
-            frame.evaluate("document.getElementById('toast').textContent = ''")
-            confirmar.click()
-            respuesta, fin = "", time.time() + 30
-            while time.time() < fin and not respuesta:
-                time.sleep(0.5)
-                respuesta = frame.locator("#toast").inner_text().strip()
-            # Si la postulación se aceptó, la tarjeta pasa a "✓ Ya te postulaste"
-            aceptada = frame.locator("#groups > .card").nth(indice).locator(".done").count() > 0
-            return aceptada, respuesta or ("Postulación enviada" if aceptada else "La app no respondió a tiempo.")
+            return _postular_en_frame(frame, curso, grupo, simular)
         finally:
             cerrar_contexto(ctx, browser)
 
@@ -846,7 +932,18 @@ def modo_bot(cfg, args):
         # Sin chats configurados el bot igual responde a quien le escriba con su ID
         # de chat, que es justo lo que hace falta para configurarlo.
         log("Ningún tutor tiene 'telegram_chat' todavía: el bot solo dirá el ID de chat de quien le escriba.")
-    tg.bucle(cfg, chats, postular, log, minutos=float(args.minutos or 330))
+    cal = NavegadorCaliente(cfg)
+    tutores_bot = list(chats.values())
+    try:
+        tg.bucle(
+            cfg, chats,
+            lambda c, tutor, curso, grupo: postular(c, tutor, curso, grupo, calientes=cal),
+            log, minutos=float(args.minutos or 330),
+            al_iniciar=lambda: cal.preparar_todos(tutores_bot),
+            en_reposo=lambda: cal.mantener(tutores_bot),
+        )
+    finally:
+        cal.cerrar()
 
 
 def modo_chats(cfg):

@@ -171,13 +171,15 @@ def _atender_toque(cfg, cq, chats, postular_fn, log):
         responder("Postulando…")
         editar(base + "\n\n" + EJECUTANDO, [])
         log("Postulando desde Telegram…")
+        inicio = time.time()
         try:
             ok, motivo = postular_fn(cfg, tutor, curso, grupo)
         except Exception as e:
             ok, motivo = False, "Error inesperado: " + type(e).__name__
-        log(("OK: " if ok else "NO SE PUDO: ") + motivo)
+        seg = round(time.time() - inicio)
+        log(("OK: " if ok else "NO SE PUDO: ") + motivo + f" ({seg} s)")
         editar(
-            base + "\n\n" + (EXITO if ok else FALLO) + "\n" + motivo,
+            base + "\n\n" + (EXITO if ok else FALLO) + "\n" + motivo + f"\n⏱️ {seg} s",
             [] if ok else [[{"text": "🔗 Abrir app", "url": cfg["url_app"]}]],
         )
     else:
@@ -204,13 +206,20 @@ def atender(cfg, update, chats, postular_fn, log):
         _atender_mensaje(cfg, update["message"], chats, log)
 
 
-def bucle(cfg, chats, postular_fn, log, minutos=330):
-    """Escucha los toques durante `minutos`. chats: {id_de_chat: tutor}."""
+def bucle(cfg, chats, postular_fn, log, minutos=330, al_iniciar=None, en_reposo=None):
+    """Escucha los toques durante `minutos`. chats: {id_de_chat: tutor}.
+    al_iniciar: se llama una vez antes de escuchar (p. ej. dejar la app lista).
+    en_reposo: se llama cuando pasa un rato sin toques (mantenimiento)."""
     token = cfg["telegram_token"]
     try:
         llamar(token, "deleteWebhook")  # si hubiera un webhook, getUpdates no funciona
     except ErrorTelegram:
         pass
+    if al_iniciar:
+        try:
+            al_iniciar()
+        except Exception as e:
+            log("No se pudo preparar la app al iniciar: " + type(e).__name__)
     fin, offset, errores = time.time() + minutos * 60, None, 0
     log("Bot de Telegram escuchando…")
     while time.time() < fin:
@@ -225,6 +234,11 @@ def bucle(cfg, chats, postular_fn, log, minutos=330):
             log(f"Telegram no respondió bien: {e.codigo} {e.descripcion[:60]}")
             time.sleep(min(30, 2 * errores))
             continue
+        if not novedades and en_reposo:
+            try:
+                en_reposo()
+            except Exception as e:
+                log("Mantenimiento de la app: " + type(e).__name__)
         for u in novedades:
             offset = u["update_id"] + 1
             try:
