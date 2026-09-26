@@ -465,7 +465,7 @@ def parsear_grupos(lineas):
     grupos, g = [], None
 
     def vacio():
-        return {"nombre": "", "horario": "", "inicio": "", "id": "", "lineas": []}
+        return {"nombre": "", "horario": "", "inicio": "", "id": "", "duracion": None, "lineas": []}
 
     for linea in lineas:
         linea = linea.strip()
@@ -476,6 +476,8 @@ def parsear_grupos(lineas):
                 grupos.append(g)
             g = vacio()
             g["nombre"] = linea.split("]")[1].split("[")[0].strip() or linea
+            dur = re.search(r"\[(\d+)\s*min\]", linea)
+            g["duracion"] = int(dur.group(1)) if dur else None
         else:
             if "🕐" in linea:
                 campo, valor = "horario", linea.replace("🕐", "").strip()
@@ -502,6 +504,10 @@ def formatear_grupo(g):
     filas = [g["nombre"] or "Grupo nuevo"]
     if g["horario"]:
         filas.append(f"🕐 {g['horario']}")
+    if g.get("duracion"):
+        h = filtro._horario(g)  # (día, minuto de inicio, duración) si el horario trae hora
+        fin = f" (termina {filtro._hm(h[1] + g['duracion'])} COL)" if h and h[1] + g["duracion"] < 24 * 60 else ""
+        filas.append(f"⏱️ {g['duracion']} min{fin}")
     if g["inicio"]:
         filas.append(f"📅 {g['inicio']}")
     if g["id"]:

@@ -125,11 +125,11 @@ def _horario(g):
     dia = _ALIAS.get(_norm(m.group(1)))
     if dia is None:
         return None
-    dur = 90
-    cabecera = (g.get("lineas") or [""])[0]
-    d = re.search(r"(\d+)\s*min", cabecera)
-    if d:
-        dur = int(d.group(1))
+    dur = g.get("duracion")
+    if not dur:
+        cabecera = (g.get("lineas") or [""])[0]
+        d = re.search(r"(\d+)\s*min", cabecera)
+        dur = int(d.group(1)) if d else 90
     return dia, int(m.group(2)) * 60 + int(m.group(3)), dur
 
 
