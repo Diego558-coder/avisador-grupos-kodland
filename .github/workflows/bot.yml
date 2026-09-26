@@ -1,0 +1,50 @@
+name: Bot de Telegram (botones de postulación)
+
+# Escucha los toques de los botones de Telegram y hace la postulación. Cada
+# ejecución escucha ~5,5 horas y al terminar lanza la siguiente; el cron por hora
+# es solo un respaldo por si esa cadena se corta. Lo que se toque mientras no hay
+# ninguna ejecución (unos segundos entre una y otra) Telegram lo guarda y se atiende
+# apenas arranca la siguiente.
+on:
+  schedule:
+    - cron: "43 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  actions: write             # lanzar la siguiente ejecución
+
+concurrency:
+  group: bot-kodland
+  cancel-in-progress: false
+
+jobs:
+  bot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Atender los botones (~5,5 horas)
+        env:
+          PW_CANAL: chrome   # usa el Chrome ya instalado en el servidor de GitHub
+          URL_APP: ${{ secrets.URL_APP }}
+          TUTORES: ${{ secrets.TUTORES }}
+          SESION_JSON: ${{ secrets.SESION_JSON }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        run: python avisador.py --bot --minutos 325
+
+      - name: Lanzar la siguiente ejecución
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run bot.yml --ref main

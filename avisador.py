@@ -29,6 +29,8 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
+import tg
+
 try:
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
@@ -75,6 +77,8 @@ def cargar_config():
         cfg["ntfy_servidor"] = env("NTFY_SERVIDOR")
     if env("NTFY_TOKEN"):
         cfg["ntfy_token"] = env("NTFY_TOKEN")
+    if env("TELEGRAM_TOKEN"):
+        cfg["telegram_token"] = env("TELEGRAM_TOKEN")
     if env("RELAY_URL"):
         cfg["relay_url"] = env("RELAY_URL")
     if env("RELAY_SECRETO"):
@@ -103,11 +107,15 @@ def cargar_config():
     cfg["tutores"] = []
     for i, t in enumerate(tutores, 1):
         tema = str(t.get("ntfy_tema") or "").strip()
+        chat = str(t.get("telegram_chat") or "").strip()
         kt = str(t.get("kt_id") or "").strip() or None
-        if not tema or "CAMBIA" in tema:
-            sys.exit(f"Al tutor n.º {i} le falta 'ntfy_tema'.")
+        if "CAMBIA" in tema:
+            tema = ""
+        if not tema and not (chat and cfg.get("telegram_token")):
+            sys.exit(f"Al tutor n.º {i} le falta un canal: 'ntfy_tema' o 'telegram_chat' (con TELEGRAM_TOKEN).")
         cfg["tutores"].append(
-            {"nombre": str(t.get("nombre") or f"tutor {i}"), "kt_id": kt, "ntfy_tema": tema, "pos": i}
+            {"nombre": str(t.get("nombre") or f"tutor {i}"), "kt_id": kt, "ntfy_tema": tema,
+             "telegram_chat": chat, "pos": i}
         )
     if not cfg["tutores"]:
         sys.exit("Falta al menos un tutor: secreto TUTORES, o NTFY_TEMA / ntfy_tema.")
@@ -121,6 +129,7 @@ def cargar_config():
 # ---------------------------------------------------------------- notificación
 
 NOTIFICACIONES_FALLIDAS = 0
+ULTIMO_FALLO_CUOTA = False
 
 
 def cuota_ntfy(cfg):
@@ -134,9 +143,10 @@ def cuota_ntfy(cfg):
         return None
 
 
-def notificar(cfg, titulo, mensaje, prioridad=4, tags=("bell",), acciones=None):
+def notificar(cfg, titulo, mensaje, prioridad=4, tags=("bell",), acciones=None, contar_fallo=True):
     """Envía a ntfy con reintentos. Devuelve True si llegó."""
-    global NOTIFICACIONES_FALLIDAS
+    global NOTIFICACIONES_FALLIDAS, ULTIMO_FALLO_CUOTA
+    ULTIMO_FALLO_CUOTA = False
     payload = {
         "topic": cfg["ntfy_tema"],
         "title": titulo,
@@ -173,13 +183,39 @@ def notificar(cfg, titulo, mensaje, prioridad=4, tags=("bell",), acciones=None):
                 # Cuota diaria agotada: reintentar ahora no sirve. Lo que no se avisó
                 # queda pendiente y se reenvía solo cuando la cuota se reinicia.
                 log("Cuota diaria de ntfy agotada: los avisos pendientes se reenviarán después.")
+                ULTIMO_FALLO_CUOTA = True
                 return False
             log(f"ERROR enviando notificación (intento {intento}/3): {e} {detalle}")
             time.sleep(5 * intento)
     # El tema es secreto: solo mostramos su largo para poder diagnosticar
     log(f"No se pudo notificar. Largo del tema ntfy: {len(cfg['ntfy_tema'])} caracteres.")
-    NOTIFICACIONES_FALLIDAS += 1
+    if contar_fallo:
+        NOTIFICACIONES_FALLIDAS += 1
     return False
+
+
+def avisar(cfg, tutor, titulo, mensaje, prioridad=4, tags=("bell",), grupo=None, info=""):
+    """Manda un aviso al tutor por TODOS sus canales (Telegram y/o ntfy).
+    grupo=(curso, codigo) añade el botón para postularse. True si llegó por alguno."""
+    global NOTIFICACIONES_FALLIDAS
+    llego = False
+    if tutor.get("telegram_chat") and cfg.get("telegram_token"):
+        curso, codigo = grupo if grupo else ("", None)
+        botones = tg.botones_grupo(tutor["pos"], curso, codigo, cfg["url_app"])
+        if tg.enviar(cfg["telegram_token"], tutor["telegram_chat"], titulo, mensaje, botones,
+                     silencioso=prioridad <= 2):
+            log(f"Telegram: {titulo}")
+            llego = True
+        else:
+            log(f"ERROR: no se pudo enviar por Telegram: {titulo}")
+    if tutor.get("ntfy_tema"):
+        cfg_n = {**cfg, "ntfy_tema": tutor["ntfy_tema"]}
+        acciones = acciones_para(cfg_n, tutor, grupo[0], grupo[1], info) if grupo else acciones_para(cfg_n, tutor, "", None)
+        if notificar(cfg_n, titulo, mensaje, prioridad, tags, acciones, contar_fallo=False):
+            llego = True
+    if not llego and not ULTIMO_FALLO_CUOTA:
+        NOTIFICACIONES_FALLIDAS += 1
+    return llego
 
 
 # ------------------------------------------------------------------ navegador
@@ -567,18 +603,21 @@ def avisar_cambios(cfg, tutor, curso, lineas):
     grupos = parsear_grupos(lineas)
     # Con mucha cuota se avisa grupo por grupo (cada uno con su botón); con poca,
     # un solo aviso por curso, para no quedarse sin envíos a mitad del día.
-    limite, restante = MAX_AVISOS_POR_CURSO, cuota_ntfy(cfg)
-    if restante is not None:
-        limite = 15 if restante >= 150 else (MAX_AVISOS_POR_CURSO if restante >= 40 else 0)
+    limite = MAX_AVISOS_POR_CURSO
+    if tutor.get("telegram_chat") and cfg.get("telegram_token"):
+        limite = 30  # Telegram no tiene el tope de 250 avisos al día de ntfy
+    else:
+        restante = cuota_ntfy(cfg)
+        if restante is not None:
+            limite = 15 if restante >= 150 else (MAX_AVISOS_POR_CURSO if restante >= 40 else 0)
     if not grupos or len(grupos) > limite or any(not g["id"] for g in grupos):
         cuerpo = formatear_grupos(grupos) or "\n".join(lineas[:15])
-        ok = notificar(cfg, f"🆕 Grupos nuevos: {curso}", cuerpo,
-                       acciones=acciones_para(cfg, tutor, curso, None))
+        ok = avisar(cfg, tutor, f"🆕 Grupos nuevos: {curso}", cuerpo)
         return [] if ok else list(lineas)
     fallidas = []
     for g in grupos:
-        ok = notificar(cfg, f"🆕 {curso}", formatear_grupo(g),
-                       acciones=acciones_para(cfg, tutor, curso, g["id"], resumen_grupo(g)))
+        ok = avisar(cfg, tutor, f"🆕 {curso}", formatear_grupo(g),
+                    grupo=(curso, g["id"]), info=resumen_grupo(g))
         if not ok:
             fallidas.extend(g["lineas"])
     return fallidas
@@ -595,9 +634,8 @@ def quitar_lineas(lineas, quitar):
 
 
 def revisar(cfg, estado, tutor):
-    """Revisa la app con el ID de un tutor y avisa a SU tema de ntfy."""
+    """Revisa la app con el ID de un tutor y le avisa a él, por sus propios canales."""
     ruta = ruta_estado(tutor)
-    cfg = {**cfg, "ntfy_tema": tutor["ntfy_tema"]}
     log("Revisando...")
     try:
         actual = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"))
@@ -608,7 +646,7 @@ def revisar(cfg, estado, tutor):
             msg = str(e)
         log(f"ERROR: {msg}")
         if not estado.get("error_avisado"):
-            notificar(cfg, "Avisador Kodland: problema", msg, prioridad=3, tags=("warning",))
+            avisar(cfg, tutor, "Avisador Kodland: problema", msg, prioridad=3, tags=("warning",))
             estado["error_avisado"] = True
             guardar_json(ruta, estado)
         return estado
@@ -635,10 +673,10 @@ def revisar(cfg, estado, tutor):
         heartbeat = ahora  # empieza a contar desde ahora, sin avisar
     elif (ahora - heartbeat).total_seconds() >= float(cfg["heartbeat_horas"]) * 3600:
         total = sum(len(v) for v in actual.values())
-        if notificar(
-            cfg,
+        if avisar(
+            cfg, tutor,
             "Avisador Kodland: sigo activo",
-            f"Revisando {len(actual)} cursos ({total} líneas visibles ahora)." + _texto_cuota(cfg),
+            f"Revisando {len(actual)} cursos ({total} líneas visibles ahora)." + _texto_cuota(cfg, tutor),
             prioridad=2,
             tags=("signal_strength",),
         ):
@@ -654,7 +692,9 @@ def revisar(cfg, estado, tutor):
     return estado
 
 
-def _texto_cuota(cfg):
+def _texto_cuota(cfg, tutor):
+    if not tutor.get("ntfy_tema"):
+        return ""
     restante = cuota_ntfy(cfg)
     return "" if restante is None else f" Avisos de ntfy que quedan hoy: {restante} de 250."
 
@@ -740,8 +780,8 @@ def modo_postular(cfg, args):
 
     log("Postulando…")
     if not args.simular:
-        notificar(
-            {**cfg, "ntfy_tema": tutor["ntfy_tema"]},
+        avisar(
+            cfg, tutor,
             "⏳ Postulando…",
             f"{curso}\n🏷️ {grupo}\nEn unos 30 segundos te digo cómo salió.",
             prioridad=2, tags=("hourglass_flowing_sand",),
@@ -752,8 +792,8 @@ def modo_postular(cfg, args):
         ok, msg = False, f"Error inesperado: {type(e).__name__}"
     log(("OK: " if ok else "NO SE PUDO: ") + msg)
     if not args.simular:
-        notificar(
-            {**cfg, "ntfy_tema": tutor["ntfy_tema"]},
+        avisar(
+            cfg, tutor,
             "✅ Postulación enviada" if ok else "❌ No se pudo postular",
             f"{curso}\n🏷️ {grupo}\n{msg}",
             tags=("white_check_mark",) if ok else ("x",),
@@ -770,8 +810,6 @@ def modo_listar(cfg, args):
         assert int(args.tutor or 1) >= 1
     except (ValueError, IndexError, AssertionError):
         sys.exit("Tutor inválido.")
-    cfg_t = {**cfg, "ntfy_tema": tutor["ntfy_tema"]}
-
     actual = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"))
     lista, vistos = [], set()
     for curso, lineas in actual.items():
@@ -788,14 +826,41 @@ def modo_listar(cfg, args):
 
     enviados = 0
     for curso, g in lista:
-        if notificar(cfg_t, f"📋 {curso}", formatear_grupo(g), prioridad=3,
-                     acciones=acciones_para(cfg_t, tutor, curso, g["id"], resumen_grupo(g))):
+        if avisar(cfg, tutor, f"📋 {curso}", formatear_grupo(g), prioridad=3,
+                  grupo=(curso, g["id"]), info=resumen_grupo(g)):
             enviados += 1
-        time.sleep(2.5)  # ntfy limita la velocidad de envío
-    notificar(cfg_t, "📋 Lista completa enviada",
+        # ntfy limita la velocidad de envío; Telegram admite 1 mensaje por segundo por chat
+        time.sleep(1.2 if (tutor.get("telegram_chat") and not tutor.get("ntfy_tema")) else 2.5)
+    avisar(cfg, tutor, "📋 Lista completa enviada",
               f"{enviados} de {len(lista)} grupos disponibles ahora.\n" +
               "\n".join(f"• {c}: {n}" for c, n in por_curso.items()),
               prioridad=3)
+
+
+def modo_bot(cfg, args):
+    """Atiende los toques de los botones de Telegram durante --minutos."""
+    if not cfg.get("telegram_token"):
+        sys.exit("Falta el token de Telegram (secreto TELEGRAM_TOKEN o 'telegram_token' en config.json).")
+    chats = {t["telegram_chat"]: t for t in cfg["tutores"] if t.get("telegram_chat")}
+    if not chats:
+        sys.exit("Ningún tutor tiene 'telegram_chat' en TUTORES.")
+    tg.bucle(cfg, chats, postular, log, minutos=float(args.minutos or 330))
+
+
+def modo_chats(cfg):
+    """Muestra los chats que le han escrito al bot (para saber el ID de cada persona)."""
+    if not cfg.get("telegram_token"):
+        sys.exit("Falta el token de Telegram.")
+    vistos = {}
+    for u in tg.llamar(cfg["telegram_token"], "getUpdates", timeout=0):
+        m = u.get("message") or (u.get("callback_query") or {}).get("message") or {}
+        chat = m.get("chat") or {}
+        if chat.get("id"):
+            vistos[chat["id"]] = chat.get("first_name") or chat.get("title") or ""
+    if not vistos:
+        print("Nadie le ha escrito al bot todavía: abre el bot en Telegram y toca Iniciar (/start).")
+    for cid, nombre in vistos.items():
+        print(f"ID de chat {cid}  ({nombre})")
 
 
 def modo_login(cfg):
@@ -836,33 +901,36 @@ def main():
     ap.add_argument("--contar", action="store_true", help="con --listar: solo contar, sin enviar")
     ap.add_argument("--probar-boton", action="store_true",
                     help="envía un aviso con botón Postularme sobre un grupo que NO existe (prueba sin efectos)")
+    ap.add_argument("--bot", action="store_true", help="atender los botones de Telegram (con --minutos)")
+    ap.add_argument("--minutos", help="con --bot: cuánto tiempo escuchar (por defecto 330)")
+    ap.add_argument("--telegram-chats", action="store_true", help="ver el ID de chat de quien le escribió al bot")
     args = ap.parse_args()
 
     cfg = cargar_config()
 
     if args.login:
         return modo_login(cfg)
+    if args.bot:
+        return modo_bot(cfg, args)
+    if args.telegram_chats:
+        return modo_chats(cfg)
     if args.postular:
         return modo_postular(cfg, args)
     if args.listar:
         return modo_listar(cfg, args)
     if args.probar_boton:
         t = cfg["tutores"][0]
-        ok = notificar(
-            {**cfg, "ntfy_tema": t["ntfy_tema"]},
+        ok = avisar(
+            cfg, t,
             "🧪 Prueba del botón",
-            "Grupo inventado: no se postula a nada real.\n1) Toca Postularme  2) te llega '¿Confirmas?'  3) toca Confirmar (o Cancelar)\n4) llega el aviso de que ese grupo no existe.",
-            acciones=acciones_para(cfg, t, "Unity", "PRUEBA_0-0", "Grupo inventado de prueba"),
+            "Grupo inventado: no se postula a nada real.\n1) Toca Postularme  2) te pregunta '¿Confirmas?'  3) toca Confirmar (o Cancelar)\n4) te dice que ese grupo no existe.",
+            grupo=("Unity", "PRUEBA_0-0"), info="Grupo inventado de prueba",
         )
         sys.exit(0 if ok else 1)
     tutores = cfg["tutores"]
     if args.probar:
         # Solo al primer tutor (el tuyo): así no molestas al resto al probar.
-        ok = notificar(
-            {**cfg, "ntfy_tema": tutores[0]["ntfy_tema"]},
-            "Avisador Kodland ✅",
-            "¡Las notificaciones funcionan!",
-        )
+        ok = avisar(cfg, tutores[0], "Avisador Kodland ✅", "¡Las notificaciones funcionan!")
         sys.exit(0 if ok else 1)
     if args.reset:
         for t in tutores:

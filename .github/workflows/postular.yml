@@ -44,6 +44,7 @@ jobs:
           PW_CANAL: chrome   # usa el Chrome ya instalado en el servidor de GitHub
           URL_APP: ${{ secrets.URL_APP }}
           NTFY_TEMA: ${{ secrets.NTFY_TEMA }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           NTFY_TOKEN: ${{ secrets.NTFY_TOKEN }}
           TUTORES: ${{ secrets.TUTORES }}
           SESION_JSON: ${{ secrets.SESION_JSON }}
