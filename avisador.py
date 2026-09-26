@@ -843,7 +843,9 @@ def modo_bot(cfg, args):
         sys.exit("Falta el token de Telegram (secreto TELEGRAM_TOKEN o 'telegram_token' en config.json).")
     chats = {t["telegram_chat"]: t for t in cfg["tutores"] if t.get("telegram_chat")}
     if not chats:
-        sys.exit("Ningún tutor tiene 'telegram_chat' en TUTORES.")
+        # Sin chats configurados el bot igual responde a quien le escriba con su ID
+        # de chat, que es justo lo que hace falta para configurarlo.
+        log("Ningún tutor tiene 'telegram_chat' todavía: el bot solo dirá el ID de chat de quien le escriba.")
     tg.bucle(cfg, chats, postular, log, minutos=float(args.minutos or 330))
 
 
