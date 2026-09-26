@@ -76,7 +76,7 @@ jobs:
               git commit -q -m "Actualiza estado [skip ci]"
               git pull -q --rebase && git push -q || echo "No se pudo guardar estado.json"
             fi
-            # Si ntfy falla, cortamos para que la ejecución quede en rojo y se note
+            # Si Telegram falla, cortamos para que la ejecución quede en rojo y se note
             if [ $FALLO = 1 ]; then exit 1; fi
             sleep 180
           done
