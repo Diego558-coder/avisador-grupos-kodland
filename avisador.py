@@ -896,6 +896,11 @@ def modo_listar(cfg, args):
         assert int(args.tutor or 1) >= 1
     except (ValueError, IndexError, AssertionError):
         sys.exit("Tutor inválido.")
+    if args.canal == "telegram":
+        if not (tutor.get("telegram_chat") and cfg.get("telegram_token")):
+            sys.exit("Ese tutor no tiene Telegram configurado.")
+        tutor = {**tutor, "ntfy_tema": ""}  # solo Telegram: no gasta la cuota de ntfy
+
     actual = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"))
     lista, vistos = [], set()
     for curso, lineas in actual.items():
@@ -998,6 +1003,7 @@ def main():
     ap.add_argument("--listar", action="store_true",
                     help="enviar al celular todos los grupos disponibles ahora (con --tutor N; --contar solo cuenta)")
     ap.add_argument("--contar", action="store_true", help="con --listar: solo contar, sin enviar")
+    ap.add_argument("--canal", choices=["telegram"], help="con --listar: enviar solo por ese canal")
     ap.add_argument("--probar-boton", action="store_true",
                     help="envía un aviso con botón Postularme sobre un grupo que NO existe (prueba sin efectos)")
     ap.add_argument("--bot", action="store_true", help="atender los botones de Telegram (con --minutos)")
