@@ -22,7 +22,7 @@ import sys
 import time
 import urllib.request
 from collections import Counter
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -162,6 +162,50 @@ def ruta_estado(tutor):
     if not kt or kt == kt_id_de_sesion():
         return ESTADO_FILE
     return BASE / f"estado_{hashlib.sha1(kt.encode()).hexdigest()[:8]}.json"
+
+
+def ruta_historial(tutor):
+    """Un archivo por tutor (según su ID o chat, no su posición) para guardar sus
+    postulaciones y cuándo se detectó cada grupo nuevo."""
+    ident = tutor.get("kt_id") or tutor.get("telegram_chat") or str(tutor["pos"])
+    return BASE / f"historial_{hashlib.sha1(ident.encode()).hexdigest()[:8]}.json"
+
+
+def cargar_historial(tutor):
+    return cargar_json(ruta_historial(tutor), {"postulaciones": [], "nuevos": []})
+
+
+def _agregar_con_tope(lista, entrada, tope=500):
+    lista.append(entrada)
+    return lista[-tope:]
+
+
+def registrar_postulacion(tutor, curso, grupo, ok, mensaje):
+    h = cargar_historial(tutor)
+    h["postulaciones"] = _agregar_con_tope(h["postulaciones"], {
+        "fecha": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "curso": curso, "grupo": grupo, "ok": ok, "mensaje": mensaje[:200],
+    })
+    guardar_json(ruta_historial(tutor), h)
+
+
+def registrar_nuevos(tutor, ahora, curso, ids_grupo):
+    """Guarda cuándo se detectó cada grupo nuevo (para las estadísticas). No
+    duplica un mismo grupo si ya estaba registrado (p. ej. por un reintento)."""
+    if not ids_grupo:
+        return
+    h = cargar_historial(tutor)
+    ya = {(e["curso"], e["grupo"]) for e in h["nuevos"]}
+    cambiado = False
+    for gid in ids_grupo:
+        if (curso, gid) not in ya:
+            h["nuevos"] = _agregar_con_tope(h["nuevos"], {
+                "fecha": ahora.isoformat(timespec="seconds"), "curso": curso, "grupo": gid,
+            })
+            ya.add((curso, gid))
+            cambiado = True
+    if cambiado:
+        guardar_json(ruta_historial(tutor), h)
 
 
 def abrir_contexto(p, headless, kt_id=None):
@@ -494,6 +538,9 @@ def revisar(cfg, estado, tutor):
     else:
         cambios = comparar(anterior, actual)
         for curso, lineas in cambios.items():
+            # Para las estadísticas: cuándo se detectó cada grupo (no depende de si
+            # el aviso se pudo enviar, así no se pierde ni se duplica con reintentos)
+            registrar_nuevos(tutor, ahora, curso, [g["id"] for g in parsear_grupos(lineas) if g["id"]])
             # Lo que no se pudo avisar no se da por visto: se reintenta después
             pendientes[curso] = avisar_cambios(cfg, tutor, curso, lineas)
         if not cambios:
@@ -662,6 +709,13 @@ def postular(cfg, tutor, curso, grupo, simular=False, calientes=None):
     """Se postula a un grupo como lo haría una persona. Devuelve (ok, mensaje).
     Con simular=True llega hasta el panel de confirmación y se detiene.
     Con `calientes` reutiliza una app ya abierta (mucho más rápido)."""
+    ok, mensaje = _postular_interno(cfg, tutor, curso, grupo, simular, calientes)
+    if not simular:
+        registrar_postulacion(tutor, curso, grupo, ok, mensaje)
+    return ok, mensaje
+
+
+def _postular_interno(cfg, tutor, curso, grupo, simular=False, calientes=None):
     if calientes is not None:
         for intento in (1, 2):
             frame = calientes.frame(tutor) if intento == 1 else calientes.preparar(tutor)
@@ -686,6 +740,146 @@ def postular(cfg, tutor, curso, grupo, simular=False, calientes=None):
             return _postular_en_frame(frame, curso, grupo, simular)
         finally:
             cerrar_contexto(ctx, browser)
+
+
+def _leer_mis_postulaciones(frame):
+    """Lee la sección 'Mis postulaciones' de la app ya abierta y deja la app
+    como estaba (en la pantalla de elegir curso), lista para postularse después."""
+    frame.evaluate("setMode('mis')")
+    fin = time.time() + 15
+    datos = None
+    while time.time() < fin:
+        try:
+            datos = json.loads(frame.evaluate("JSON.stringify({a:APROBADOS,p:PENDIENTES})"))
+        except Exception:
+            datos = None
+        if datos is not None and (datos["a"] or datos["p"] or time.time() > fin - 3):
+            break
+        time.sleep(0.5)
+    frame.evaluate("setMode('grupos')")
+    try:
+        frame.select_option("select", value="")
+    except Exception:
+        pass
+    return datos or {"a": [], "p": []}
+
+
+def mis_postulaciones(cfg, tutor, calientes=None):
+    """Devuelve {"asignados": [...], "pendientes": [...]}, con la fecha de
+    postulación cuando el bot la registró (postulaciones hechas por fuera de
+    aquí no tienen fecha, porque la app de Kodland no la guarda)."""
+    if calientes is not None:
+        frame = calientes.frame(tutor) or calientes.preparar(tutor)
+        if frame is None:
+            return None
+        try:
+            datos = _leer_mis_postulaciones(frame)
+        except Exception:
+            calientes.cerrar_uno(tutor)
+            frame = calientes.preparar(tutor)
+            datos = _leer_mis_postulaciones(frame) if frame else {"a": [], "p": []}
+    else:
+        with sync_playwright() as p:
+            ctx, browser = abrir_contexto(p, True, tutor.get("kt_id"))
+            try:
+                page = ctx.new_page()
+                page.goto(cfg["url_app"], wait_until="domcontentloaded", timeout=60000)
+                frame = buscar_frame_con_select(page)
+                if frame is None:
+                    return None
+                datos = _leer_mis_postulaciones(frame)
+            finally:
+                cerrar_contexto(ctx, browser)
+
+    # Empareja cada grupo con la fecha más reciente que el bot registró para él
+    fechas = {}
+    for e in cargar_historial(tutor)["postulaciones"]:
+        if e.get("ok") and (e["grupo"] not in fechas or e["fecha"] > fechas[e["grupo"]]):
+            fechas[e["grupo"]] = e["fecha"]
+    for g in datos["a"] + datos["p"]:
+        g["fecha"] = fechas.get(g.get("group"))
+    return {"asignados": datos["a"], "pendientes": datos["p"]}
+
+
+def _fecha_bonita(iso):
+    if not iso:
+        return "fecha sin registrar"
+    f = leer_fecha(iso)
+    if f is None:
+        return "fecha sin registrar"
+    f = f.astimezone(timezone(timedelta(hours=-5)))  # hora de Colombia
+    return f.strftime("%d/%m %H:%M")
+
+
+def formatear_mis_postulaciones(datos):
+    if not datos["asignados"] and not datos["pendientes"]:
+        return "Todavía no tienes postulaciones. Cuando confirmes una desde aquí, aparecerá aquí."
+    partes = []
+    if datos["asignados"]:
+        partes.append(f"✅ Asignados ({len(datos['asignados'])})")
+        for g in datos["asignados"]:
+            partes.append(f"• {g.get('course','')} · 🏷️ {g.get('group','')}\n   🕐 {g.get('schedule','—')}"
+                          f"\n   📅 Postulado: {_fecha_bonita(g.get('fecha'))}")
+        partes.append("")
+    if datos["pendientes"]:
+        en_revision = [g for g in datos["pendientes"] if g.get("estado") != "no-quedo"]
+        no_quedo = [g for g in datos["pendientes"] if g.get("estado") == "no-quedo"]
+        if en_revision:
+            partes.append(f"⏳ En revisión ({len(en_revision)})")
+            for g in en_revision:
+                partes.append(f"• 🏷️ {g.get('group','')} · 🕐 {g.get('horario','—')}"
+                              f"\n   📅 Postulado: {_fecha_bonita(g.get('fecha'))}")
+            partes.append("")
+        if no_quedo:
+            partes.append(f"❌ No asignados, otro tutor lo tomó ({len(no_quedo)})")
+            for g in no_quedo:
+                partes.append(f"• 🏷️ {g.get('group','')} · 🕐 {g.get('horario','—')}")
+    return "\n".join(partes).strip()
+
+
+FRANJAS_ESTADISTICAS = [("madrugada (0-6h)", 0, 6), ("mañana (6-12h)", 6, 12),
+                        ("tarde (12-18h)", 12, 18), ("noche (18-24h)", 18, 24)]
+
+
+def _barra(n, maximo, ancho=15):
+    return "█" * max(1, round(n / maximo * ancho)) if n else ""
+
+
+def estadisticas(tutor):
+    """Cuándo suelen publicarse los grupos nuevos: por día de la semana y por
+    franja horaria, con la hora de Colombia."""
+    eventos = cargar_historial(tutor)["nuevos"]
+    if len(eventos) < 5:
+        return ("Todavía no tengo suficientes datos (llevo " + str(len(eventos)) + " grupos vistos). "
+                "Vuelve a intentarlo en unos días; voy guardando cada grupo nuevo que aparece.")
+
+    dias, horas = Counter(), Counter()
+    fechas = []
+    for e in eventos:
+        f = leer_fecha(e["fecha"])
+        if f is None:
+            continue
+        f = f.astimezone(timezone(timedelta(hours=-5)))
+        fechas.append(f)
+        dias[f.weekday()] += 1  # 0 = lunes, igual que filtro.DIAS
+        horas[next(nombre for nombre, a, b in FRANJAS_ESTADISTICAS if a <= f.hour < b)] += 1
+
+    desde = min(fechas).strftime("%d/%m")
+    partes = [f"📊 {len(eventos)} grupos nuevos vistos desde el {desde}\n", "Por día de la semana:"]
+    max_dia = max(dias.values())
+    for i, nombre in enumerate(filtro.DIAS):
+        n = dias.get(i, 0)
+        partes.append(f"{nombre.capitalize():10} {_barra(n, max_dia):16} {n}")
+    partes.append("\nPor momento del día (hora de Colombia):")
+    max_franja = max(horas.values()) if horas else 1
+    for nombre, _, _ in FRANJAS_ESTADISTICAS:
+        n = horas.get(nombre, 0)
+        partes.append(f"{nombre:18} {_barra(n, max_franja):16} {n}")
+    mejor_dia = filtro.DIAS[max(dias, key=dias.get)]
+    mejor_franja = max(horas, key=horas.get) if horas else None
+    if mejor_franja:
+        partes.append(f"\nConviene estar pendiente los {mejor_dia}, en la {mejor_franja}.")
+    return "\n".join(partes)
 
 
 def modo_postular(cfg, args):
@@ -722,15 +916,9 @@ def modo_postular(cfg, args):
     sys.exit(0 if ok else 1)
 
 
-def modo_listar(cfg, args):
-    """Manda al celular TODOS los grupos disponibles ahora, cada uno con su botón.
-    No toca el estado del vigilante, así que no afecta a los avisos futuros."""
-    tutores = cfg["tutores"]
-    try:
-        tutor = tutores[int(args.tutor or 1) - 1]
-        assert int(args.tutor or 1) >= 1
-    except (ValueError, IndexError, AssertionError):
-        sys.exit("Tutor inválido.")
+def enviar_todos(cfg, tutor, solo_contar=False):
+    """Manda TODOS los grupos disponibles ahora, cada uno con su botón. No toca
+    el estado del vigilante, así que no afecta a los avisos futuros."""
     actual = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"))
     lista, vistos = [], set()
     for curso, lineas in actual.items():
@@ -742,8 +930,8 @@ def modo_listar(cfg, args):
     log(f"Grupos disponibles: {len(lista)}")
     for curso, n in por_curso.items():
         log(f"  {curso}: {n}")
-    if args.contar:
-        return
+    if solo_contar:
+        return len(lista)
 
     enviados = 0
     for curso, g in lista:
@@ -754,6 +942,17 @@ def modo_listar(cfg, args):
               f"{enviados} de {len(lista)} grupos disponibles ahora.\n" +
               "\n".join(f"• {c}: {n}" for c, n in por_curso.items()),
               prioridad=3)
+    return len(lista)
+
+
+def modo_listar(cfg, args):
+    tutores = cfg["tutores"]
+    try:
+        tutor = tutores[int(args.tutor or 1) - 1]
+        assert int(args.tutor or 1) >= 1
+    except (ValueError, IndexError, AssertionError):
+        sys.exit("Tutor inválido.")
+    enviar_todos(cfg, tutor, solo_contar=args.contar)
 
 
 def estado_actual(tutor):
@@ -793,6 +992,24 @@ def buscar_grupos(cfg, tutor, texto):
     }
 
 
+def comando_mispostulaciones(cfg, tutor, calientes):
+    avisar(cfg, tutor, "🔎 Buscando tus postulaciones…", "Esto tarda unos segundos.", prioridad=2)
+    datos = mis_postulaciones(cfg, tutor, calientes=calientes)
+    if datos is None:
+        avisar(cfg, tutor, "❌ No se pudo", "No pude entrar a la app ahora. Intenta de nuevo en un momento.", prioridad=3)
+    else:
+        avisar(cfg, tutor, "📌 Mis postulaciones", formatear_mis_postulaciones(datos), prioridad=3)
+
+
+def comando_todos(cfg, tutor):
+    avisar(cfg, tutor, "🔎 Buscando todos los grupos…", "Esto puede tardar uno o dos minutos.", prioridad=2)
+    enviar_todos(cfg, tutor)
+
+
+def comando_estadisticas(cfg, tutor):
+    avisar(cfg, tutor, "📊 Estadísticas", estadisticas(tutor), prioridad=2)
+
+
 def modo_bot(cfg, args):
     """Atiende los toques de los botones de Telegram durante --minutos."""
     if not cfg.get("telegram_token"):
@@ -804,6 +1021,11 @@ def modo_bot(cfg, args):
         log("Ningún tutor tiene 'telegram_chat' todavía: el bot solo dirá el ID de chat de quien le escriba.")
     cal = NavegadorCaliente(cfg)
     tutores_bot = list(chats.values())
+    comandos = {
+        "mispostulaciones": lambda c, t: comando_mispostulaciones(c, t, cal),
+        "todos": comando_todos,
+        "estadisticas": comando_estadisticas,
+    }
     try:
         tg.bucle(
             cfg, chats,
@@ -812,6 +1034,7 @@ def modo_bot(cfg, args):
             al_iniciar=lambda: cal.preparar_todos(tutores_bot),
             en_reposo=lambda: cal.mantener(tutores_bot),
             buscar_fn=buscar_grupos,
+            comandos=comandos,
         )
     finally:
         cal.cerrar()

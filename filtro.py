@@ -191,5 +191,9 @@ AYUDA = (
     "• /grupos roblox sábado mañana\n"
     "• /grupos sábado 8-12; domingo 14-18\n\n"
     "Cuentan la hora de Colombia y la duración de la clase: el grupo solo aparece si "
-    "empieza y termina dentro de tu horario. Mañana = 6–12, tarde = 12–18, noche = 18–24."
+    "empieza y termina dentro de tu horario. Mañana = 6–12, tarde = 12–18, noche = 18–24.\n\n"
+    "Otros comandos:\n"
+    "• /todos — ver todos los grupos disponibles ahora mismo\n"
+    "• /mispostulaciones — a qué grupos ya te postulaste\n"
+    "• /estadisticas — qué días y horas salen más grupos"
 )

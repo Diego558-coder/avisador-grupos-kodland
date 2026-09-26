@@ -212,7 +212,7 @@ def _buscar(cfg, chat, tutor, texto, buscar_fn):
         time.sleep(1.1)  # Telegram admite ~1 mensaje por segundo en un mismo chat
 
 
-def _atender_mensaje(cfg, m, chats, log, buscar_fn=None):
+def _atender_mensaje(cfg, m, chats, log, buscar_fn=None, comandos=None):
     """/start, /ayuda, /grupos ... y texto libre. A un chat desconocido le dice su ID,
     para poder añadirlo a la configuración (sin darle acceso a nada)."""
     token, chat = cfg["telegram_token"], str((m.get("chat") or {}).get("id", ""))
@@ -222,15 +222,22 @@ def _atender_mensaje(cfg, m, chats, log, buscar_fn=None):
     if tutor is None:
         return enviar(token, chat, "Tu ID de chat", f"{chat}\nPásaselo a quien configura el avisador.", silencioso=True)
     texto = (m.get("text") or "").strip()
-    comando = texto.split()[0].split("@")[0].lower() if texto.startswith("/") else ""
-    if comando == "/start":
+    comando = texto.split()[0].split("@")[0].lower().lstrip("/") if texto.startswith("/") else ""
+    comandos = comandos or {}
+    if comando == "start":
         enviar(token, chat, "✅ Conectado",
                "Aquí te llegarán los grupos nuevos de Kodland, con botones para postularte.\n\n" + _ayuda(), silencioso=True)
-    elif comando in ("/ayuda", "/help"):
+    elif comando in ("ayuda", "help"):
         enviar(token, chat, "🔎 Filtrar grupos", _ayuda(), silencioso=True)
+    elif comando in comandos:
+        try:
+            comandos[comando](cfg, tutor)
+        except Exception as e:
+            log(f"Error en /{comando}: {type(e).__name__}")
+            enviar(token, chat, "❌ Algo falló", "No se pudo completar. Intenta de nuevo en un momento.", silencioso=True)
     elif buscar_fn is None:
         enviar(token, chat, "🔎 Filtrar grupos", "Esta función no está disponible ahora.", silencioso=True)
-    elif comando in ("", "/grupos", "/buscar", "/filtrar"):
+    elif comando in ("", "grupos", "buscar", "filtrar"):
         _buscar(cfg, chat, tutor, texto, buscar_fn)
     else:
         enviar(token, chat, "🤔", "No conozco ese comando. Escribe /ayuda.", silencioso=True)
@@ -241,14 +248,14 @@ def _ayuda():
     return filtro.AYUDA
 
 
-def atender(cfg, update, chats, postular_fn, log, buscar_fn=None):
+def atender(cfg, update, chats, postular_fn, log, buscar_fn=None, comandos=None):
     if update.get("callback_query"):
         _atender_toque(cfg, update["callback_query"], chats, postular_fn, log)
     elif update.get("message"):
-        _atender_mensaje(cfg, update["message"], chats, log, buscar_fn)
+        _atender_mensaje(cfg, update["message"], chats, log, buscar_fn, comandos)
 
 
-def bucle(cfg, chats, postular_fn, log, minutos=330, al_iniciar=None, en_reposo=None, buscar_fn=None):
+def bucle(cfg, chats, postular_fn, log, minutos=330, al_iniciar=None, en_reposo=None, buscar_fn=None, comandos=None):
     """Escucha los toques durante `minutos`. chats: {id_de_chat: tutor}.
     al_iniciar: se llama una vez antes de escuchar (p. ej. dejar la app lista).
     en_reposo: se llama cuando pasa un rato sin toques (mantenimiento)."""
@@ -260,6 +267,9 @@ def bucle(cfg, chats, postular_fn, log, minutos=330, al_iniciar=None, en_reposo=
     try:  # menú de comandos que aparece al escribir "/" en el chat
         llamar(token, "setMyCommands", commands=[
             {"command": "grupos", "description": "Buscar grupos por día y hora"},
+            {"command": "todos", "description": "Ver todos los grupos disponibles ahora"},
+            {"command": "mispostulaciones", "description": "Ver a qué grupos ya te postulaste"},
+            {"command": "estadisticas", "description": "Cuándo suelen salir más grupos"},
             {"command": "ayuda", "description": "Cómo usar el filtro"},
         ])
     except ErrorTelegram:
@@ -291,7 +301,7 @@ def bucle(cfg, chats, postular_fn, log, minutos=330, al_iniciar=None, en_reposo=
         for u in novedades:
             offset = u["update_id"] + 1
             try:
-                atender(cfg, u, chats, postular_fn, log, buscar_fn)
+                atender(cfg, u, chats, postular_fn, log, buscar_fn, comandos)
             except Exception as e:
                 log("Error atendiendo un toque: " + type(e).__name__)
     if offset is not None:  # confirma lo atendido para que la próxima ejecución no lo repita
