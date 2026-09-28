@@ -317,10 +317,16 @@ def texto_visible(page):
     return (" / ".join(lineas) or "nada (página en blanco)")[:200]
 
 
-def leer_todos_los_cursos(cfg, headless=True, kt_id=None):
-    """Devuelve {curso: [lineas de texto]} o lanza excepción."""
+def leer_todos_los_cursos(cfg, headless=True, kt_id=None, p=None):
+    """Devuelve {curso: [lineas de texto]} o lanza excepción.
+    `p`: un Playwright ya iniciado, para reutilizarlo (p. ej. el del bot: Playwright
+    no deja abrir uno nuevo con sync_playwright() dentro del mismo proceso si ya
+    hay otro corriendo)."""
     resultado = {}
-    with sync_playwright() as p:
+    propio = p is None
+    if propio:
+        p = sync_playwright().start()
+    try:
         ctx, browser = abrir_contexto(p, headless, kt_id)
         try:
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
@@ -380,6 +386,9 @@ def leer_todos_los_cursos(cfg, headless=True, kt_id=None):
                 log(f"  {o['text']}: {len(lineas)} líneas")
         finally:
             cerrar_contexto(ctx, browser)
+    finally:
+        if propio:
+            p.stop()
     return resultado
 
 
@@ -916,10 +925,11 @@ def modo_postular(cfg, args):
     sys.exit(0 if ok else 1)
 
 
-def enviar_todos(cfg, tutor, solo_contar=False):
+def enviar_todos(cfg, tutor, solo_contar=False, calientes=None):
     """Manda TODOS los grupos disponibles ahora, cada uno con su botón. No toca
     el estado del vigilante, así que no afecta a los avisos futuros."""
-    actual = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"))
+    p = calientes.p if calientes is not None else None
+    actual = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"), p=p)
     lista, vistos = [], set()
     for curso, lineas in actual.items():
         for g in parsear_grupos(lineas):
@@ -1001,9 +1011,9 @@ def comando_mispostulaciones(cfg, tutor, calientes):
         avisar(cfg, tutor, "📌 Mis postulaciones", formatear_mis_postulaciones(datos), prioridad=3)
 
 
-def comando_todos(cfg, tutor):
+def comando_todos(cfg, tutor, calientes):
     avisar(cfg, tutor, "🔎 Buscando todos los grupos…", "Esto puede tardar uno o dos minutos.", prioridad=2)
-    enviar_todos(cfg, tutor)
+    enviar_todos(cfg, tutor, calientes=calientes)
 
 
 def comando_estadisticas(cfg, tutor):
@@ -1023,7 +1033,7 @@ def modo_bot(cfg, args):
     tutores_bot = list(chats.values())
     comandos = {
         "mispostulaciones": lambda c, t: comando_mispostulaciones(c, t, cal),
-        "todos": comando_todos,
+        "todos": lambda c, t: comando_todos(c, t, cal),
         "estadisticas": comando_estadisticas,
     }
     try:
