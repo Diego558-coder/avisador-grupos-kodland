@@ -129,23 +129,7 @@
       "COL0000000",
       "[1220]Inicio de desarrollo Web[None][13-17][90 min][40 L][LatAm][actual]",
       "🕐 Check Name COL",
-      "COL0000000000000",
-      "[1220]Inicio de desarrollo Web[None][13-17][90 min][40 L][LatAm][actual]PRM",
-      "🕐 Lunes 17:00 COL (23:00 ESP)",
-      "📅 Inicia: 5/10/2026",
-      "PRM_COL14132_LU-17",
-      "[1220]Inicio de desarrollo Web[None][13-17][90 min][40 L][LatAm][actual]PRM",
-      "🕐 Viernes 18:00 COL (0:00 ESP)",
-      "📅 Inicia: 2/10/2026",
-      "PRM_COL14133_VI-18",
-      "[1220]Inicio de desarrollo Web[None][13-17][90 min][40 L][LatAm][actual]PRM",
-      "🕐 Martes 17:00 COL (23:00 ESP)",
-      "📅 Inicia: 13/10/2026",
-      "PRM_COL14191_MA-17",
-      "[1220]Inicio de desarrollo Web[None][13-17][90 min][40 L][LatAm][actual]PRM",
-      "🕐 Sábado 10:00 COL (16:00 ESP)",
-      "📅 Inicia: 17/10/2026",
-      "PRM_COL14303_SA-10"
+      "COL0000000000000"
     ],
     "Roblox Level 2 10-14 yo [1442]": [
       "[1442]Roblox Game Developer LVL 2[None][10-14][90 min][40 L][LatAm][actual]PRM",
@@ -376,6 +360,16 @@
       "COL14285_DO-12"
     ]
   },
-  "vacios": {},
+  "vacios": {
+    "Unity": 1,
+    "Roblox 10-12": 1,
+    "Python Pro": 1,
+    "Roblox Level 2 10-14 yo [1442]": 1,
+    "Minecraft Level 1 [1618]": 1,
+    "Roblox 8-9 [1720]": 1,
+    "Minecraft Level 2 [1713]": 1,
+    "Code and Game lvl2 [2060]": 1,
+    "Code and Game lvl3 [2059]": 1
+  },
   "ultimo_heartbeat": "2026-09-28T00:22:18+00:00"
 }
