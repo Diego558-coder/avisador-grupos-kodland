@@ -73,7 +73,10 @@
     "Roblox 8-9": [
       "[1212]Desarrollador de juegos Roblox[None][8-9][60 min][40 L][LatAm][archive]",
       "🕐 Miércoles COL",
-      "COL5398_MI-16"
+      "COL5398_MI-16",
+      "[1212]Desarrollador de juegos Roblox[None][8-9][60 min][40 L][LatAm][archive]",
+      "🕐 Sábado COL",
+      "COL7902_SA-9"
     ],
     "Roblox Level 2 10-14 yo [1442]": [
       "[1442]Roblox Game Developer LVL 2[None][10-14][90 min][40 L][LatAm][actual]PRM",
@@ -271,12 +274,6 @@
       "COL14282_MI-18"
     ]
   },
-  "vacios": {
-    "Roblox 10-12": 1,
-    "Roblox Level 2 10-14 yo [1442]": 1,
-    "Minecraft Level 1 [1618]": 1,
-    "Roblox 8-9 [1720]": 1,
-    "Minecraft Level 2 [1713]": 1
-  },
+  "vacios": {},
   "ultimo_heartbeat": "2026-09-29T23:47:22+00:00"
 }
