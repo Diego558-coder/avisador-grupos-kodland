@@ -1,10 +1,6 @@
 {
   "cursos": {
     "Unity": [
-      "[1209]Unity Game Developer[None][13-17][90 min][40 L][LatAm][actual]",
-      "🕐 Miércoles 11:00 COL (17:00 ESP)",
-      "📅 Inicia: 30/9/2026",
-      "COL13688_MI-11",
       "[1209]Unity Game Developer[None][13-17][90 min][40 L][LatAm][actual]PRM",
       "🕐 Lunes 20:00 COL (2:00 ESP)",
       "📅 Inicia: 5/10/2026",
@@ -40,7 +36,15 @@
       "[1209]Unity Game Developer[None][13-17][90 min][40 L][LatAm][actual]",
       "🕐 Martes 18:00 COL (0:00 ESP)",
       "📅 Inicia: 20/10/2026",
-      "COL14346_MA-18"
+      "COL14346_MA-18",
+      "[1209]Unity Game Developer[None][13-17][90 min][40 L][LatAm][actual]PRM",
+      "🕐 Sábado 12:00 COL (18:00 ESP)",
+      "📅 Inicia: 24/10/2026",
+      "PRM_COL14361_SA-12",
+      "[1209]Unity Game Developer[None][13-17][90 min][40 L][LatAm][actual]PRM",
+      "🕐 Miércoles 19:00 COL (1:00 ESP)",
+      "📅 Inicia: 21/10/2026",
+      "PRM_COL14362_MI-19"
     ],
     "Roblox 10-12": [
       "[1210]Desarrollador de juegos Roblox[None][10-12][90 min][40 L][LatAm][actual]PRM",
@@ -110,7 +114,19 @@
       "[1210]Desarrollador de juegos Roblox[None][10-12][90 min][40 L][LatAm][actual]",
       "🕐 Lunes 16:00 COL (22:00 ESP)",
       "📅 Inicia: 2/11/2026",
-      "COL14337_LU-16"
+      "COL14337_LU-16",
+      "[1210]Desarrollador de juegos Roblox[None][10-12][90 min][40 L][LatAm][actual]PRM",
+      "🕐 Domingo 14:00 COL (20:00 ESP)",
+      "📅 Inicia: 25/10/2026",
+      "PRM_COL14358_DO-14",
+      "[1210]Desarrollador de juegos Roblox[None][10-12][90 min][40 L][LatAm][actual]",
+      "🕐 Miércoles 20:00 COL (2:00 ESP)",
+      "📅 Inicia: 4/11/2026",
+      "COL14366_MI-20",
+      "[1210]Desarrollador de juegos Roblox[None][10-12][90 min][40 L][LatAm][actual]",
+      "🕐 Viernes 15:00 COL (21:00 ESP)",
+      "📅 Inicia: 30/10/2026",
+      "COL14367_VI-15"
     ],
     "Roblox 8-9": [
       "[1212]Desarrollador de juegos Roblox[None][8-9][60 min][40 L][LatAm][archive]",
@@ -140,7 +156,11 @@
       "[1218]Python Pro[None][13-17][90 min][40 L][LatAm][actual]",
       "🕐 Domingo 10:00 COL (16:00 ESP)",
       "📅 Inicia: 25/10/2026",
-      "COL14347_DO-10"
+      "COL14347_DO-10",
+      "[1218]Python Pro[None][13-17][90 min][40 L][LatAm][actual]",
+      "🕐 Jueves 18:00 COL (0:00 ESP)",
+      "📅 Inicia: 12/11/2026",
+      "COL14372_JU-18"
     ],
     "Web": [
       "[1220]Inicio de desarrollo Web[None][13-17][90 min][40 L][LatAm][actual]",
@@ -372,7 +392,11 @@
       "[2133]Minecraft Craftforge Intermediate[2026][10-12][90 min][40 L][LatAm][in progress]",
       "🕐 Miércoles 18:00 COL (0:00 ESP)",
       "📅 Inicia: 14/10/2026",
-      "COL14282_MI-18"
+      "COL14282_MI-18",
+      "[2133]Minecraft Craftforge Intermediate[2026][10-12][90 min][40 L][LatAm][in progress]PRM",
+      "🕐 Sábado 13:00 COL (19:00 ESP)",
+      "📅 Inicia: 17/10/2026",
+      "PRM_COL14357_SA-13"
     ],
     "Python": [],
     "Code and Game lvl2 [2060]": [
@@ -405,13 +429,25 @@
       "📅 Inicia: 12/10/2026",
       "PRM_COL14252_LU-17",
       "[2060]Code & Game lvl 2[2026][10-12][90 min][40 L][LatAm][in progress]",
+      "🕐 Sábado 10:00 COL (16:00 ESP)",
+      "📅 Inicia: 17/10/2026",
+      "COL14308_SA-10",
+      "[2060]Code & Game lvl 2[2026][10-12][90 min][40 L][LatAm][in progress]",
       "🕐 Martes 18:00 COL (0:00 ESP)",
       "📅 Inicia: 27/10/2026",
       "COL14341_MA-18",
       "[2060]Code & Game lvl 2[2026][10-12][90 min][40 L][LatAm][in progress]",
       "🕐 Sábado 10:00 COL (16:00 ESP)",
       "📅 Inicia: 24/10/2026",
-      "COL14342_SA-10"
+      "COL14342_SA-10",
+      "[2060]Code & Game lvl 2[2026][10-12][90 min][40 L][LatAm][in progress]PRM",
+      "🕐 Martes 18:30 COL (0:30 ESP)",
+      "📅 Inicia: 27/10/2026",
+      "PRM_COL14360_MA-18",
+      "[2060]Code & Game lvl 2[2026][10-12][90 min][40 L][LatAm][in progress]",
+      "🕐 Jueves 11:00 COL (17:00 ESP)",
+      "📅 Inicia: 29/10/2026",
+      "COL14371_JU-11"
     ],
     "Code and Game lvl3 [2059]": [
       "[2059]Code & Game: LVL3[2026][12-17][90 min][40 L][LatAm][in progress]",
