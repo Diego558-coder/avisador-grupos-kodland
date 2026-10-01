@@ -520,11 +520,6 @@
       "COL14352_LU-12"
     ]
   },
-  "vacios": {
-    "Minecraft Level 2 [1713]": 1,
-    "Code and Game lvl2 [2060]": 1,
-    "Code and Game lvl3 [2059]": 1
-  },
-  "ultimo_heartbeat": "2026-10-01T00:32:34+00:00",
-  "error_avisado": true
+  "vacios": {},
+  "ultimo_heartbeat": "2026-10-01T00:32:34+00:00"
 }
