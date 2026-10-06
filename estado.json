@@ -522,9 +522,7 @@
       "📅 Inicia: 7/11/2026",
       "COL14470_SA-11"
     ],
-    "Python": [
-      "Buscando…"
-    ],
+    "Python": [],
     "Code and Game lvl2 [2060]": [
       "[2060]Code & Game lvl 2[2026][10-12][90 min][40 L][LatAm][in progress]PRM",
       "🕐 Jueves 13:00 COL (19:00 ESP)",
@@ -654,8 +652,6 @@
       "COL14463_MI-18"
     ]
   },
-  "vacios": {
-    "Python": 1
-  },
+  "vacios": {},
   "ultimo_heartbeat": "2026-10-06T00:41:27+00:00"
 }
