@@ -398,7 +398,12 @@
       "COL14470_SA-11"
     ]
   },
-  "vacios": {},
-  "ultimo_heartbeat": "2026-10-07T00:17:16+00:00",
-  "error_avisado": true
+  "vacios": {
+    "Roblox 10-12": 1,
+    "Roblox Level 2 10-14 yo [1442]": 1,
+    "Minecraft Level 1 [1618]": 1,
+    "Roblox 8-9 [1720]": 1,
+    "Minecraft Level 2 [1713]": 1
+  },
+  "ultimo_heartbeat": "2026-10-07T00:17:16+00:00"
 }
