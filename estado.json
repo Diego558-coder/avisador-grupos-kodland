@@ -659,5 +659,6 @@
     "Code and Game lvl2 [2060]": 1,
     "Code and Game lvl3 [2059]": 1
   },
-  "ultimo_heartbeat": "2026-10-07T00:45:52+00:00"
+  "ultimo_heartbeat": "2026-10-07T00:45:52+00:00",
+  "error_avisado": true
 }
