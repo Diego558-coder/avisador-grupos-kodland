@@ -781,9 +781,9 @@ def _postular_en_frame(frame, curso, grupo, simular=False):
                 _esperar_grupos_nueva_app(frame)
             for indice in range(tarjetas.count()):
                 candidata = tarjetas.nth(indice)
-                codigo = candidata.locator("h6").first.inner_text().strip()
-                nombre_curso = candidata.locator("small").first.inner_text().strip()
-                if codigo == grupo and (not nombre_curso or nombre_curso == curso):
+                encabezado = candidata.locator("h6")
+                codigo = encabezado.first.inner_text().strip() if encabezado.count() else ""
+                if codigo == grupo:
                     tarjeta = candidata
                     break
             if tarjeta is not None:
@@ -801,19 +801,48 @@ def _postular_en_frame(frame, curso, grupo, simular=False):
             frame.evaluate("cerrarAlerta()")
         except Exception:
             pass
-        boton.click()
+        try:
+            boton.click(timeout=10000)
+        except Exception as e:
+            detalle = _error_sin_credenciales(e, None, None)
+            log(f"Error al pulsar Postularme ({grupo}): {detalle}")
+            return False, "No pude confirmar el resultado. Revisa Mis postulaciones antes de intentarlo otra vez."
+
         fin = time.time() + 35
         while time.time() < fin:
-            clases = (tarjeta.get_attribute("class") or "").split()
-            texto_boton = boton.inner_text().strip()
-            alerta = frame.locator("#alertBox")
-            mensaje = frame.locator("#alertMsg").inner_text().strip() if alerta.is_visible() else ""
-            if "is-applied" in clases or "ya postulado" in texto_boton.lower():
-                return True, mensaje or f"Postulación enviada al grupo {grupo}."
-            if not boton.is_disabled():
-                return False, mensaje or "La app no aceptó la postulación."
+            try:
+                estado = frame.evaluate(
+                    """(grupo) => {
+                        const cards = [...document.querySelectorAll('#gruposGrid .card-group-item')];
+                        const card = cards.find(c => c.querySelector('h6')?.textContent.trim() === grupo);
+                        const button = card?.querySelector("button[id^='btn-apply-']");
+                        const alertBox = document.querySelector('#alertBox');
+                        const alertVisible = alertBox && !alertBox.classList.contains('d-none');
+                        const alertText = alertVisible ? (document.querySelector('#alertMsg')?.textContent || '').trim() : '';
+                        const lists = typeof session === 'undefined' ? [] : [session.pendientes || [], session.aprobados || []];
+                        const recorded = lists.some(items => items.some(item => item.group === grupo));
+                        const applied = !!card && (card.classList.contains('is-applied') ||
+                            /ya postulado/i.test(button?.textContent || ''));
+                        return {
+                            applied: applied || recorded,
+                            found: !!card,
+                            disabled: button?.disabled === true,
+                            alert: alertText
+                        };
+                    }""",
+                    grupo,
+                )
+            except Exception as e:
+                detalle = _error_sin_credenciales(e, None, None)
+                log(f"Error comprobando resultado de postulación ({grupo}): {detalle}")
+                return False, "No pude confirmar el resultado. Revisa Mis postulaciones antes de intentarlo otra vez."
+
+            if estado["applied"]:
+                return True, estado["alert"] or f"Postulación enviada al grupo {grupo}."
+            if estado["alert"] and not estado["disabled"]:
+                return False, estado["alert"]
             time.sleep(0.25)
-        return False, "La app no confirmó la postulación a tiempo."
+        return False, "La app no confirmó el resultado. Revisa Mis postulaciones antes de volver a intentarlo."
 
     try:
         frame.select_option(SELECTOR_CURSO, value="")  # limpia lo que hubiera de una vez anterior
@@ -937,6 +966,19 @@ def postular(cfg, tutor, curso, grupo, simular=False, calientes=None):
     return ok, mensaje
 
 
+def _error_sin_credenciales(error, tutor, cfg):
+    detalle = " ".join(str(error).split())[:400]
+    valores = (
+        (tutor or {}).get("password"),
+        (cfg or {}).get("telegram_token"),
+    )
+    for valor in valores:
+        secreto = str(valor or "")
+        if secreto:
+            detalle = detalle.replace(secreto, "[credencial oculta]")
+    return f"{type(error).__name__}: {detalle}"
+
+
 def _postular_interno(cfg, tutor, curso, grupo, simular=False, calientes=None):
     if calientes is not None:
         for intento in (1, 2):
@@ -945,11 +987,13 @@ def _postular_interno(cfg, tutor, curso, grupo, simular=False, calientes=None):
                 return False, "No se pudo entrar a la app de Kodland."
             try:
                 return _postular_en_frame(frame, curso, grupo, simular)
-            except Exception:
+            except Exception as e:
                 # La página pudo caducar: se abre otra y se reintenta una vez. Si la
                 # postulación ya se había enviado, el reintento verá 'Ya te postulaste'.
+                log(f"Error preparando postulación, intento {intento + 1}/2: "
+                    f"{_error_sin_credenciales(e, tutor, cfg)}")
                 calientes.cerrar_uno(tutor)
-        return False, "La app no respondió; inténtalo de nuevo."
+        return False, "No se pudo confirmar el resultado. Revisa Mis postulaciones antes de volver a intentarlo."
 
     with sync_playwright() as p:
         ctx, browser = abrir_contexto(p, True, tutor.get("kt_id"), tutor)
