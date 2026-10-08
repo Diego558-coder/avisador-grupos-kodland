@@ -809,6 +809,7 @@ def _postular_en_frame(frame, curso, grupo, simular=False):
             return False, "No pude confirmar el resultado. Revisa Mis postulaciones antes de intentarlo otra vez."
 
         fin = time.time() + 35
+        ultimo_estado = None
         while time.time() < fin:
             try:
                 estado = frame.evaluate(
@@ -832,6 +833,7 @@ def _postular_en_frame(frame, curso, grupo, simular=False):
                     }""",
                     grupo,
                 )
+                ultimo_estado = estado
             except Exception as e:
                 detalle = _error_sin_credenciales(e, None, None)
                 log(f"Error comprobando resultado de postulación ({grupo}): {detalle}")
@@ -842,7 +844,20 @@ def _postular_en_frame(frame, curso, grupo, simular=False):
             if estado["alert"] and not estado["disabled"]:
                 return False, estado["alert"]
             time.sleep(0.25)
-        return False, "La app no confirmó el resultado. Revisa Mis postulaciones antes de volver a intentarlo."
+        if ultimo_estado is None:
+            diagnostico = "sin estado de la tarjeta"
+        else:
+            alerta = " ".join((ultimo_estado.get("alert") or "").split())[:160]
+            diagnostico = (
+                f"grupo_visible={ultimo_estado['found']}, "
+                f"boton_cargando={ultimo_estado['disabled']}, "
+                f"alerta={alerta or 'ninguna'}"
+            )
+        log(f"Timeout confirmando postulación ({grupo}): {diagnostico}")
+        return False, (
+            "No se confirmó la postulación. Revisa Mis postulaciones antes de volver a intentarlo.\n"
+            f"Diagnóstico: {diagnostico}"
+        )
 
     try:
         frame.select_option(SELECTOR_CURSO, value="")  # limpia lo que hubiera de una vez anterior
