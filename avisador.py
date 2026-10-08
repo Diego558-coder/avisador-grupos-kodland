@@ -41,6 +41,7 @@ CONFIG_FILE = BASE / "config.json"
 ESTADO_FILE = BASE / "estado.json"
 PERFIL_DIR = BASE / "perfil_navegador"
 SESION_FILE = BASE / "sesion.json"
+SELECTOR_CURSO = "#selCurso"
 
 
 def log(msg):
@@ -274,7 +275,8 @@ def buscar_frame_con_select(page, espera_seg=40):
     while time.time() < fin:
         for fr in page.frames:
             try:
-                if fr.query_selector("select"):
+                selector = fr.locator(SELECTOR_CURSO)
+                if selector.count() and selector.is_visible():
                     return fr
             except Exception:
                 pass
@@ -295,7 +297,8 @@ def iniciar_sesion_tutor(page, tutor, espera_seg=45):
                 if fr.locator("#inputId").count() and fr.locator("#inputPass").count():
                     frame = fr
                     break
-                if fr.locator("select").count():
+                selector = fr.locator(SELECTOR_CURSO)
+                if selector.count() and selector.is_visible():
                     return fr
             except Exception:
                 pass
@@ -313,7 +316,8 @@ def iniciar_sesion_tutor(page, tutor, espera_seg=45):
     fin = time.time() + espera_seg
     while time.time() < fin:
         try:
-            if frame.locator("select").count():
+            selector = frame.locator(SELECTOR_CURSO)
+            if selector.count() and selector.is_visible() and selector.is_enabled():
                 return frame
             alerta = frame.locator("#alertBox")
             if alerta.is_visible():
@@ -408,7 +412,7 @@ def leer_todos_los_cursos(cfg, headless=True, kt_id=None, p=None, tutor=None):
                 )
 
             opciones = frame.eval_on_selector_all(
-                "select option",
+                f"{SELECTOR_CURSO} option",
                 "els => els.map(e => ({value: e.value, text: e.textContent.trim()}))",
             )
             opciones = [o for o in opciones if o["value"] and "elige" not in o["text"].lower()]
@@ -432,7 +436,7 @@ def leer_todos_los_cursos(cfg, headless=True, kt_id=None, p=None, tutor=None):
             }
 
             for o in opciones:
-                frame.select_option("select", value=o["value"])
+                frame.select_option(SELECTOR_CURSO, value=o["value"])
                 texto = texto_estable(frame)
                 lineas = []
                 for l in texto.splitlines():
@@ -666,11 +670,11 @@ def _postular_en_frame(frame, curso, grupo, simular=False):
     """Hace la postulación sobre una página de la app YA abierta: elige el curso,
     toca 'Postularme' y luego 'Confirmar postulación'. Devuelve (ok, mensaje)."""
     try:
-        frame.select_option("select", value="")  # limpia lo que hubiera de una vez anterior
+        frame.select_option(SELECTOR_CURSO, value="")  # limpia lo que hubiera de una vez anterior
     except Exception:
         pass
     try:
-        frame.select_option("select", label=curso)
+        frame.select_option(SELECTOR_CURSO, label=curso)
     except Exception:
         return False, f"No encontré el curso «{curso}» en tu lista."
     try:
@@ -830,7 +834,7 @@ def _leer_mis_postulaciones(frame):
         time.sleep(0.5)
     frame.evaluate("setMode('grupos')")
     try:
-        frame.select_option("select", value="")
+        frame.select_option(SELECTOR_CURSO, value="")
     except Exception:
         pass
     return datos or {"a": [], "p": []}
