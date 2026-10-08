@@ -79,11 +79,12 @@ def cargar_config():
     if not cfg.get("telegram_token"):
         sys.exit("Falta el token de Telegram: secreto TELEGRAM_TOKEN o 'telegram_token' en config.json.")
 
-    # Varios tutores: secreto TUTORES (o "tutores" en config.json) con una lista
-    # [{"nombre": "...", "kt_id": "123", "telegram_chat": "456"}, ...].
-    if env("TUTORES"):
+    # Varios tutores: el secreto TUTORES puede incluir su password; no se lee
+    # ese campo desde config.json para evitar guardar contraseñas en disco.
+    tutores_json = env("TUTORES")
+    if tutores_json:
         try:
-            tutores = json.loads(env("TUTORES"))
+            tutores = json.loads(tutores_json)
         except json.JSONDecodeError:
             sys.exit("El secreto TUTORES no es un JSON válido.")
     else:
@@ -96,7 +97,13 @@ def cargar_config():
         if not chat:
             sys.exit(f"Al tutor n.º {i} le falta 'telegram_chat'.")
         cfg["tutores"].append(
-            {"nombre": str(t.get("nombre") or f"tutor {i}"), "kt_id": kt, "telegram_chat": chat, "pos": i}
+            {
+                "nombre": str(t.get("nombre") or f"tutor {i}"),
+                "kt_id": kt,
+                "telegram_chat": chat,
+                "password": str(t.get("password") or "") if tutores_json else "",
+                "pos": i,
+            }
         )
     if not cfg["tutores"]:
         sys.exit("Falta al menos un tutor: secreto TUTORES o 'tutores' en config.json.")
@@ -208,10 +215,19 @@ def registrar_nuevos(tutor, ahora, curso, ids_grupo):
         guardar_json(ruta_historial(tutor), h)
 
 
-def abrir_contexto(p, headless, kt_id=None):
+def abrir_contexto(p, headless, kt_id=None, tutor=None):
     """Devuelve (context, browser). 'browser' es None cuando se usa un perfil
     persistente (no hace falta cerrarlo aparte)."""
     args_anti_deteccion = ["--disable-blink-features=AutomationControlled"]
+
+    if tutor and tutor.get("password"):
+        browser = p.chromium.launch(
+            headless=headless,
+            args=args_anti_deteccion,
+            channel=os.environ.get("PW_CANAL") or None,
+        )
+        ctx = browser.new_context(viewport={"width": 1200, "height": 900})
+        return ctx, browser
 
     if SESION_FILE.exists():
         # Modo portátil: sirve igual en Windows (PC) que en Linux (servidor en
@@ -266,6 +282,53 @@ def buscar_frame_con_select(page, espera_seg=40):
     return None
 
 
+def iniciar_sesion_tutor(page, tutor, espera_seg=45):
+    """Inicia sesión con la cuenta del tutor; la contraseña solo vive en memoria."""
+    if not tutor or not tutor.get("password"):
+        return None
+
+    fin = time.time() + 20
+    frame = None
+    while time.time() < fin:
+        for fr in page.frames:
+            try:
+                if fr.locator("#inputId").count() and fr.locator("#inputPass").count():
+                    frame = fr
+                    break
+                if fr.locator("select").count():
+                    return fr
+            except Exception:
+                pass
+        if frame:
+            break
+        time.sleep(0.5)
+
+    if frame is None:
+        raise RuntimeError("No se encontró el formulario de inicio de sesión de Kodland.")
+
+    frame.locator("#inputId").fill(str(tutor.get("kt_id") or ""))
+    frame.locator("#inputPass").fill(tutor["password"])
+    frame.locator("#btnLogin").click()
+
+    fin = time.time() + espera_seg
+    while time.time() < fin:
+        try:
+            if frame.locator("select").count():
+                return frame
+            alerta = frame.locator("#alertBox")
+            if alerta.is_visible():
+                mensaje = alerta.inner_text().strip()
+                if mensaje:
+                    raise RuntimeError("LOGIN: " + mensaje[:240])
+        except RuntimeError:
+            raise
+        except Exception:
+            pass
+        time.sleep(0.5)
+
+    raise RuntimeError("LOGIN: la app no confirmó el acceso; revisa el ID y la contraseña.")
+
+
 PALABRAS_CARGANDO = ("cargando", "loading", "buscando", "espera")
 
 
@@ -317,7 +380,7 @@ def texto_visible(page):
     return (" / ".join(lineas) or "nada (página en blanco)")[:200]
 
 
-def leer_todos_los_cursos(cfg, headless=True, kt_id=None, p=None):
+def leer_todos_los_cursos(cfg, headless=True, kt_id=None, p=None, tutor=None):
     """Devuelve {curso: [lineas de texto]} o lanza excepción.
     `p`: un Playwright ya iniciado, para reutilizarlo (p. ej. el del bot: Playwright
     no deja abrir uno nuevo con sync_playwright() dentro del mismo proceso si ya
@@ -327,13 +390,13 @@ def leer_todos_los_cursos(cfg, headless=True, kt_id=None, p=None):
     if propio:
         p = sync_playwright().start()
     try:
-        ctx, browser = abrir_contexto(p, headless, kt_id)
+        ctx, browser = abrir_contexto(p, headless, kt_id, tutor)
         try:
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
             frame = None
             for intento in (1, 2):  # la app a veces tarda: se reintenta antes de dar la alarma
                 page.goto(cfg["url_app"], wait_until="domcontentloaded", timeout=60000)
-                frame = buscar_frame_con_select(page)
+                frame = iniciar_sesion_tutor(page, tutor) or buscar_frame_con_select(page)
                 if frame is not None:
                     break
                 log(f"La app no mostró el selector de cursos (intento {intento}/2).")
@@ -523,7 +586,7 @@ def revisar(cfg, estado, tutor):
     ruta = ruta_estado(tutor)
     log("Revisando...")
     try:
-        actual = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"))
+        actual = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"), tutor=tutor)
     except RuntimeError as e:
         if str(e) == "SESION":
             msg = "No se pudo entrar a la app de Kodland. Revisa que el ID de tutor siga siendo válido."
@@ -666,12 +729,12 @@ class NavegadorCaliente:
         self.cerrar_uno(tutor)
         if self.p is None:
             self.p = sync_playwright().start()
-        ctx, browser = abrir_contexto(self.p, True, tutor.get("kt_id"))
+        ctx, browser = abrir_contexto(self.p, True, tutor.get("kt_id"), tutor)
         frame = None
         try:
             page = ctx.new_page()
             page.goto(self.cfg["url_app"], wait_until="domcontentloaded", timeout=60000)
-            frame = buscar_frame_con_select(page)
+            frame = iniciar_sesion_tutor(page, tutor) or buscar_frame_con_select(page)
         except Exception:
             pass
         if frame is None:
@@ -739,11 +802,11 @@ def _postular_interno(cfg, tutor, curso, grupo, simular=False, calientes=None):
         return False, "La app no respondió; inténtalo de nuevo."
 
     with sync_playwright() as p:
-        ctx, browser = abrir_contexto(p, True, tutor.get("kt_id"))
+        ctx, browser = abrir_contexto(p, True, tutor.get("kt_id"), tutor)
         try:
             page = ctx.new_page()
             page.goto(cfg["url_app"], wait_until="domcontentloaded", timeout=60000)
-            frame = buscar_frame_con_select(page)
+            frame = iniciar_sesion_tutor(page, tutor) or buscar_frame_con_select(page)
             if frame is None:
                 return False, "No se pudo entrar a la app de Kodland."
             return _postular_en_frame(frame, curso, grupo, simular)
@@ -789,11 +852,11 @@ def mis_postulaciones(cfg, tutor, calientes=None):
             datos = _leer_mis_postulaciones(frame) if frame else {"a": [], "p": []}
     else:
         with sync_playwright() as p:
-            ctx, browser = abrir_contexto(p, True, tutor.get("kt_id"))
+            ctx, browser = abrir_contexto(p, True, tutor.get("kt_id"), tutor)
             try:
                 page = ctx.new_page()
                 page.goto(cfg["url_app"], wait_until="domcontentloaded", timeout=60000)
-                frame = buscar_frame_con_select(page)
+                frame = iniciar_sesion_tutor(page, tutor) or buscar_frame_con_select(page)
                 if frame is None:
                     return None
                 datos = _leer_mis_postulaciones(frame)
@@ -929,7 +992,7 @@ def enviar_todos(cfg, tutor, solo_contar=False, calientes=None):
     """Manda TODOS los grupos disponibles ahora, cada uno con su botón. No toca
     el estado del vigilante, así que no afecta a los avisos futuros."""
     p = calientes.p if calientes is not None else None
-    actual = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"), p=p)
+    actual = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"), p=p, tutor=tutor)
     lista, vistos = [], set()
     for curso, lineas in actual.items():
         for g in parsear_grupos(lineas):
@@ -1143,7 +1206,9 @@ def main():
     if args.ver:
         global leer_todos_los_cursos
         original = leer_todos_los_cursos
-        leer_todos_los_cursos = lambda c, kt_id=None: original(c, headless=False, kt_id=kt_id)
+        leer_todos_los_cursos = lambda c, kt_id=None, p=None, tutor=None: original(
+            c, headless=False, kt_id=kt_id, p=p, tutor=tutor
+        )
 
     def revisar_todos():
         for i, t in enumerate(tutores, 1):
