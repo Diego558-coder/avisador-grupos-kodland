@@ -420,6 +420,54 @@ def _lineas_tarjetas_nueva_app(frame, curso):
     return lineas
 
 
+def _resolver_opcion_curso(frame, curso):
+    selector = frame.locator(SELECTOR_CURSO)
+    try:
+        frame.wait_for_function(
+            """selector => {
+                const select = document.querySelector(selector);
+                return select && [...select.options].some(option => option.value.trim());
+            }""",
+            arg=SELECTOR_CURSO,
+            timeout=8000,
+        )
+    except Exception:
+        pass
+
+    opciones = selector.evaluate_all(
+        "els => els[0] ? [...els[0].options].map(o => ({"
+        "value:o.value.trim(), text:o.textContent.trim(), label:o.label.trim()"
+        "})) : []"
+    )
+    opciones = [o for o in opciones if o["value"]]
+    normalizar = lambda texto: " ".join(str(texto or "").split()).casefold()
+    solicitado = normalizar(curso)
+
+    exactas = [
+        o for o in opciones
+        if solicitado in {normalizar(o["value"]), normalizar(o["text"]), normalizar(o["label"])}
+    ]
+    if len(exactas) == 1:
+        return exactas[0], opciones
+    if len(exactas) > 1:
+        por_valor = [o for o in exactas if normalizar(o["value"]) == solicitado]
+        if len(por_valor) == 1:
+            return por_valor[0], opciones
+        return None, opciones
+
+    codigo = re.search(r"\[(\d+)\]", str(curso or ""))
+    if codigo:
+        patron = re.compile(rf"(?<!\d){re.escape(codigo.group(1))}(?!\d)")
+        por_codigo = [
+            o for o in opciones
+            if patron.search(" ".join((o["value"], o["text"], o["label"])))
+        ]
+        if len(por_codigo) == 1:
+            return por_codigo[0], opciones
+
+    return None, opciones
+
+
 def texto_visible(page):
     """Lo que la app muestra en pantalla (sin el saludo con el nombre), para
     explicar por qué no apareció el selector: pausa de postulaciones, error, etc."""
@@ -759,7 +807,15 @@ def leer_fecha(texto):
 def _postular_en_frame(frame, curso, grupo, simular=False):
     """Hace la postulación sobre una página de la app ya abierta."""
     if frame.locator("#gruposGrid").count():
-        frame.select_option(SELECTOR_CURSO, label=curso)
+        opcion_curso, opciones_curso = _resolver_opcion_curso(frame, curso)
+        if opcion_curso is None:
+            disponibles = ", ".join(o["text"] or o["value"] for o in opciones_curso[:20]) or "ninguno"
+            log(f"Curso solicitado no disponible: {curso!r}; opciones actuales: {disponibles}")
+            return False, (
+                f"El curso {curso!r} del aviso ya no coincide con la app. "
+                f"Cursos actuales: {disponibles[:180]}"
+            )
+        frame.select_option(SELECTOR_CURSO, value=opcion_curso["value"], timeout=8000)
         _esperar_grupos_nueva_app(frame)
         selector_modalidad = frame.locator("#selModalidad")
         if selector_modalidad.count() and selector_modalidad.is_visible():
