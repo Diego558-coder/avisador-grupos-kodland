@@ -227,6 +227,15 @@ def _atender_mensaje(cfg, m, chats, log, buscar_fn=None, comandos=None):
     if comando == "start":
         enviar(token, chat, "✅ Conectado",
                "Aquí te llegarán los grupos nuevos de Kodland, con botones para postularte.\n\n" + _ayuda(), silencioso=True)
+    elif comando == "miid":
+        nombre = tutor.get("nombre") or "tutor"
+        enviar(
+            token,
+            chat,
+            "🆔 Tu ID de Telegram",
+            f"ID de chat: {chat}\nTutor asociado: {nombre}\nEste número corresponde a telegram_chat.",
+            silencioso=True,
+        )
     elif comando in ("ayuda", "help"):
         enviar(token, chat, "🔎 Filtrar grupos", _ayuda(), silencioso=True)
     elif comando in comandos:
@@ -266,6 +275,7 @@ def bucle(cfg, chats, postular_fn, log, minutos=330, al_iniciar=None, en_reposo=
         pass
     try:  # menú de comandos que aparece al escribir "/" en el chat
         llamar(token, "setMyCommands", commands=[
+            {"command": "miid", "description": "Ver tu ID de Telegram"},
             {"command": "grupos", "description": "Buscar grupos por día y hora"},
             {"command": "todos", "description": "Ver todos los grupos disponibles ahora"},
             {"command": "mispostulaciones", "description": "Ver a qué grupos ya te postulaste"},
