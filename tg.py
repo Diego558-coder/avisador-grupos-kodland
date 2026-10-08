@@ -242,7 +242,11 @@ def _atender_mensaje(cfg, m, chats, log, buscar_fn=None, comandos=None):
         try:
             comandos[comando](cfg, tutor)
         except Exception as e:
-            log(f"Error en /{comando}: {type(e).__name__}")
+            detalle = " ".join(str(e).split())[:400]
+            for secreto in (str(tutor.get("password") or ""), str(cfg.get("telegram_token") or "")):
+                if secreto:
+                    detalle = detalle.replace(secreto, "[credencial oculta]")
+            log(f"Error en /{comando}: {type(e).__name__}: {detalle}")
             enviar(token, chat, "❌ Algo falló", "No se pudo completar. Intenta de nuevo en un momento.", silencioso=True)
     elif buscar_fn is None:
         enviar(token, chat, "🔎 Filtrar grupos", "Esta función no está disponible ahora.", silencioso=True)

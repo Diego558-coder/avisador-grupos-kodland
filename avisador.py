@@ -369,6 +369,57 @@ def texto_estable(frame, max_seg=20):
     return anterior or ""
 
 
+def _esperar_grupos_nueva_app(frame, timeout_ms=30000):
+    frame.wait_for_function(
+        """() => {
+            const grid = document.querySelector('#gruposGrid');
+            const spinner = document.querySelector('#gruposSpinner');
+            const alert = document.querySelector('#alertBox');
+            return grid && spinner && spinner.classList.contains('d-none') &&
+                (grid.children.length > 0 || (alert && !alert.classList.contains('d-none')));
+        }""",
+        timeout=timeout_ms,
+    )
+    grid = frame.locator("#gruposGrid")
+    if grid.locator(".card-group-item").count():
+        return
+    texto = grid.inner_text().strip()
+    if "no hay grupos disponibles" in texto.lower():
+        return
+    alerta = frame.locator("#alertBox")
+    if alerta.is_visible():
+        mensaje = frame.locator("#alertMsg").inner_text().strip()
+        if mensaje:
+            raise RuntimeError("La app no pudo cargar grupos: " + mensaje[:240])
+    if not texto:
+        raise RuntimeError("La nueva app terminó de cargar sin mostrar grupos ni un mensaje de estado.")
+
+
+def _lineas_tarjetas_nueva_app(frame, curso):
+    lineas = []
+    tarjetas = frame.locator("#gruposGrid .card-group-item")
+    for indice in range(tarjetas.count()):
+        tarjeta = tarjetas.nth(indice)
+        clases = (tarjeta.get_attribute("class") or "").split()
+        if "is-applied" in clases:
+            continue
+        grupo = tarjeta.locator("h6").first.inner_text().strip()
+        if not grupo:
+            continue
+        nombre_curso = tarjeta.locator("small").first.inner_text().strip() or curso
+        detalle = tarjeta.locator(".my-2").inner_text()
+        horario = re.search(r"(?im)^\s*Horario:\s*(.+?)\s*$", detalle)
+        inicio = re.search(r"(?im)^\s*Inicio:\s*(.+?)\s*$", detalle)
+        lineas.append(f"[{grupo}]{nombre_curso}")
+        if horario:
+            lineas.append("🕐 " + horario.group(1).strip())
+        if inicio:
+            valor_inicio = re.sub(r"^Inicia:\s*", "", inicio.group(1).strip(), flags=re.IGNORECASE)
+            lineas.append("📅 " + valor_inicio)
+        lineas.append("🏷️ " + grupo)
+    return lineas
+
+
 def texto_visible(page):
     """Lo que la app muestra en pantalla (sin el saludo con el nombre), para
     explicar por qué no apareció el selector: pausa de postulaciones, error, etc."""
@@ -420,6 +471,29 @@ def leer_todos_los_cursos(cfg, headless=True, kt_id=None, p=None, tutor=None):
             if filtro:
                 opciones = [o for o in opciones if any(f in o["text"].lower() for f in filtro)]
 
+            if frame.locator("#gruposGrid").count():
+                modalidad = frame.locator("#selModalidad")
+                if modalidad.count() and modalidad.is_visible():
+                    modalidades = modalidad.evaluate_all(
+                        "els => els.map(e => e.value).filter(Boolean)"
+                    )
+                else:
+                    modalidades = [None]
+                for modo in modalidades:
+                    if modo and modalidad.input_value() != modo:
+                        seleccion_actual = frame.locator(SELECTOR_CURSO).input_value()
+                        modalidad.select_option(value=modo)
+                        if seleccion_actual:
+                            _esperar_grupos_nueva_app(frame)
+                    for opcion in opciones:
+                        frame.select_option(SELECTOR_CURSO, value=opcion["value"])
+                        _esperar_grupos_nueva_app(frame)
+                        lineas_grupo = _lineas_tarjetas_nueva_app(frame, opcion["text"])
+                        resultado.setdefault(opcion["text"], []).extend(lineas_grupo)
+                        log(f"  {opcion['text']} ({modo or 'grupal'}): "
+                            f"{frame.locator('#gruposGrid .card-group-item').count()} tarjetas visibles")
+                return resultado
+
             nombres_cursos = {o["text"] for o in opciones}
             ignorar = {l.lower() for l in cfg["ignorar_lineas"]}
             ESTATICAS = {
@@ -470,6 +544,20 @@ def comparar(anterior, actual):
             if anterior:  # solo si ya había una línea base
                 cambios[curso] = ["(curso nuevo en la lista)"] + lineas
             continue
+        grupos_actuales = parsear_grupos(lineas)
+        grupos_anteriores = parsear_grupos(anterior[curso])
+        if grupos_actuales and all(g["id"] for g in grupos_actuales) and all(
+            g["id"] for g in grupos_anteriores
+        ):
+            conteo_anterior = Counter(g["id"] for g in grupos_anteriores)
+            conteo_actual, nuevas_lineas = Counter(), []
+            for grupo in grupos_actuales:
+                conteo_actual[grupo["id"]] += 1
+                if conteo_actual[grupo["id"]] > conteo_anterior[grupo["id"]]:
+                    nuevas_lineas.extend(grupo["lineas"])
+            if nuevas_lineas:
+                cambios[curso] = nuevas_lineas
+            continue
         nuevas = Counter(lineas) - Counter(anterior[curso])
         if nuevas:
             # conservar el orden en que aparecen en pantalla
@@ -511,6 +599,8 @@ def parsear_grupos(lineas):
                 campo, valor = "horario", linea.replace("🕐", "").strip()
             elif "📅" in linea:
                 campo, valor = "inicio", linea.replace("📅", "").strip()
+            elif linea.startswith("🏷️"):
+                campo, valor = "id", linea.replace("🏷️", "").strip()
             elif es_codigo_grupo(linea):
                 campo, valor = "id", linea
             else:
@@ -667,8 +757,64 @@ def leer_fecha(texto):
 
 
 def _postular_en_frame(frame, curso, grupo, simular=False):
-    """Hace la postulación sobre una página de la app YA abierta: elige el curso,
-    toca 'Postularme' y luego 'Confirmar postulación'. Devuelve (ok, mensaje)."""
+    """Hace la postulación sobre una página de la app ya abierta."""
+    if frame.locator("#gruposGrid").count():
+        frame.select_option(SELECTOR_CURSO, label=curso)
+        _esperar_grupos_nueva_app(frame)
+        selector_modalidad = frame.locator("#selModalidad")
+        if selector_modalidad.count() and selector_modalidad.is_visible():
+            opciones_modalidad = selector_modalidad.evaluate_all(
+                "els => els.map(e => e.value).filter(Boolean)"
+            )
+            modalidad_actual = selector_modalidad.input_value()
+            modalidades = ([modalidad_actual] if modalidad_actual in opciones_modalidad else []) + [
+                m for m in opciones_modalidad if m != modalidad_actual
+            ]
+        else:
+            modalidades = [None]
+
+        tarjetas = frame.locator("#gruposGrid .card-group-item")
+        tarjeta = None
+        for modo in modalidades:
+            if modo and selector_modalidad.input_value() != modo:
+                selector_modalidad.select_option(value=modo)
+                _esperar_grupos_nueva_app(frame)
+            for indice in range(tarjetas.count()):
+                candidata = tarjetas.nth(indice)
+                codigo = candidata.locator("h6").first.inner_text().strip()
+                nombre_curso = candidata.locator("small").first.inner_text().strip()
+                if codigo == grupo and (not nombre_curso or nombre_curso == curso):
+                    tarjeta = candidata
+                    break
+            if tarjeta is not None:
+                break
+        if tarjeta is None:
+            return False, f"El grupo {grupo} ya no está disponible."
+        clases = (tarjeta.get_attribute("class") or "").split()
+        boton = tarjeta.locator("button[id^='btn-apply-']")
+        if "is-applied" in clases or not boton.count() or boton.is_disabled():
+            return True, f"Ya estabas postulado al grupo {grupo}."
+        if simular:
+            return True, f"SIMULACIÓN: el grupo {grupo} está listo. No se envió nada."
+
+        try:
+            frame.evaluate("cerrarAlerta()")
+        except Exception:
+            pass
+        boton.click()
+        fin = time.time() + 35
+        while time.time() < fin:
+            clases = (tarjeta.get_attribute("class") or "").split()
+            texto_boton = boton.inner_text().strip()
+            alerta = frame.locator("#alertBox")
+            mensaje = frame.locator("#alertMsg").inner_text().strip() if alerta.is_visible() else ""
+            if "is-applied" in clases or "ya postulado" in texto_boton.lower():
+                return True, mensaje or f"Postulación enviada al grupo {grupo}."
+            if not boton.is_disabled():
+                return False, mensaje or "La app no aceptó la postulación."
+            time.sleep(0.25)
+        return False, "La app no confirmó la postulación a tiempo."
+
     try:
         frame.select_option(SELECTOR_CURSO, value="")  # limpia lo que hubiera de una vez anterior
     except Exception:
@@ -821,6 +967,13 @@ def _postular_interno(cfg, tutor, curso, grupo, simular=False, calientes=None):
 def _leer_mis_postulaciones(frame):
     """Lee la sección 'Mis postulaciones' de la app ya abierta y deja la app
     como estaba (en la pantalla de elegir curso), lista para postularse después."""
+    if frame.locator("#listPendientes").count() and frame.locator("#gridAprobados").count():
+        return json.loads(
+            frame.evaluate(
+                "JSON.stringify({a: session.aprobados || [], p: session.pendientes || []})"
+            )
+        )
+
     frame.evaluate("setMode('mis')")
     fin = time.time() + 15
     datos = None
