@@ -297,6 +297,7 @@ def bucle(cfg, chats, postular_fn, log, minutos=330, al_iniciar=None, en_reposo=
             {"command": "miid", "description": "Ver tu ID de Telegram"},
             {"command": "grupos", "description": "Buscar grupos por día y hora"},
             {"command": "todos", "description": "Ver todos los grupos disponibles ahora"},
+            {"command": "individuales", "description": "Ver grupos individuales 1-1"},
             {"command": "mispostulaciones", "description": "Ver a qué grupos ya te postulaste"},
             {"command": "estadisticas", "description": "Cuándo suelen salir más grupos"},
             {"command": "ayuda", "description": "Cómo usar el filtro"},

@@ -420,6 +420,35 @@ def _lineas_tarjetas_nueva_app(frame, curso):
     return lineas
 
 
+def _deduplicar_grupos_por_id(lineas):
+    resultado, vistos = [], set()
+    for grupo in parsear_grupos(lineas):
+        ident = grupo["id"]
+        if ident and ident in vistos:
+            continue
+        if ident:
+            vistos.add(ident)
+        resultado.extend(grupo["lineas"])
+    return resultado
+
+
+def _modalidades_a_leer(frame, modalidad_objetivo=None):
+    selector = frame.locator("#selModalidad")
+    if not selector.count() or not selector.is_visible():
+        if modalidad_objetivo == "individual":
+            raise RuntimeError("Tu cuenta no tiene habilitada la modalidad Individual (1-1).")
+        return [None]
+
+    disponibles = selector.locator("option").evaluate_all(
+        "els => els.map(e => e.value).filter(Boolean)"
+    )
+    if modalidad_objetivo:
+        if modalidad_objetivo not in disponibles:
+            raise RuntimeError(f"La app no ofrece la modalidad solicitada: {modalidad_objetivo}.")
+        return [modalidad_objetivo]
+    return disponibles
+
+
 def _resolver_opcion_curso(frame, curso):
     selector = frame.locator(SELECTOR_CURSO)
     try:
@@ -483,7 +512,9 @@ def texto_visible(page):
     return (" / ".join(lineas) or "nada (página en blanco)")[:200]
 
 
-def leer_todos_los_cursos(cfg, headless=True, kt_id=None, p=None, tutor=None):
+def leer_todos_los_cursos(
+    cfg, headless=True, kt_id=None, p=None, tutor=None, modalidad_objetivo=None
+):
     """Devuelve {curso: [lineas de texto]} o lanza excepción.
     `p`: un Playwright ya iniciado, para reutilizarlo (p. ej. el del bot: Playwright
     no deja abrir uno nuevo con sync_playwright() dentro del mismo proceso si ya
@@ -521,12 +552,7 @@ def leer_todos_los_cursos(cfg, headless=True, kt_id=None, p=None, tutor=None):
 
             if frame.locator("#gruposGrid").count():
                 modalidad = frame.locator("#selModalidad")
-                if modalidad.count() and modalidad.is_visible():
-                    modalidades = modalidad.evaluate_all(
-                        "els => els.map(e => e.value).filter(Boolean)"
-                    )
-                else:
-                    modalidades = [None]
+                modalidades = _modalidades_a_leer(frame, modalidad_objetivo)
                 for modo in modalidades:
                     if modo and modalidad.input_value() != modo:
                         seleccion_actual = frame.locator(SELECTOR_CURSO).input_value()
@@ -537,10 +563,18 @@ def leer_todos_los_cursos(cfg, headless=True, kt_id=None, p=None, tutor=None):
                         frame.select_option(SELECTOR_CURSO, value=opcion["value"])
                         _esperar_grupos_nueva_app(frame)
                         lineas_grupo = _lineas_tarjetas_nueva_app(frame, opcion["text"])
-                        resultado.setdefault(opcion["text"], []).extend(lineas_grupo)
+                        resultado[opcion["text"]] = _deduplicar_grupos_por_id(
+                            resultado.get(opcion["text"], []) + lineas_grupo
+                        )
                         log(f"  {opcion['text']} ({modo or 'grupal'}): "
                             f"{frame.locator('#gruposGrid .card-group-item').count()} tarjetas visibles")
                 return resultado
+
+            if modalidad_objetivo:
+                raise RuntimeError(
+                    "Esta versión de la app no permite separar grupos por modalidad; "
+                    "no enviaré grupos mezclados como si fueran 1-1."
+                )
 
             nombres_cursos = {o["text"] for o in opciones}
             ignorar = {l.lower() for l in cfg["ignorar_lineas"]}
@@ -586,35 +620,24 @@ def leer_todos_los_cursos(cfg, headless=True, kt_id=None, p=None, tutor=None):
 def comparar(anterior, actual):
     """Devuelve {curso: [lineas nuevas]} usando conteo (detecta aunque se repitan textos)."""
     cambios = {}
+    ids_anteriores = {
+        grupo["id"]
+        for lineas in anterior.values()
+        for grupo in parsear_grupos(lineas)
+        if grupo["id"]
+    }
+    ids_actuales = set()
     for curso, lineas in actual.items():
-        if curso not in anterior:
-            # Curso que no existía antes en el desplegable
-            if anterior:  # solo si ya había una línea base
-                cambios[curso] = ["(curso nuevo en la lista)"] + lineas
-            continue
         grupos_actuales = parsear_grupos(lineas)
-        grupos_anteriores = parsear_grupos(anterior[curso])
-        if grupos_actuales and all(g["id"] for g in grupos_actuales) and all(
-            g["id"] for g in grupos_anteriores
-        ):
-            conteo_anterior = Counter(g["id"] for g in grupos_anteriores)
-            conteo_actual, nuevas_lineas = Counter(), []
-            for grupo in grupos_actuales:
-                conteo_actual[grupo["id"]] += 1
-                if conteo_actual[grupo["id"]] > conteo_anterior[grupo["id"]]:
-                    nuevas_lineas.extend(grupo["lineas"])
-            if nuevas_lineas:
-                cambios[curso] = nuevas_lineas
-            continue
-        nuevas = Counter(lineas) - Counter(anterior[curso])
-        if nuevas:
-            # conservar el orden en que aparecen en pantalla
-            vistas, orden = Counter(), []
-            for l in lineas:
-                if nuevas[l] > vistas[l]:
-                    vistas[l] += 1
-                    orden.append(l)
-            cambios[curso] = orden
+        nuevas_lineas = []
+        for grupo in grupos_actuales:
+            ident = grupo["id"]
+            if ident and ident not in ids_anteriores and ident not in ids_actuales:
+                nuevas_lineas.extend(grupo["lineas"])
+            if ident:
+                ids_actuales.add(ident)
+        if nuevas_lineas:
+            cambios[curso] = nuevas_lineas
     return cambios
 
 
@@ -819,7 +842,7 @@ def _postular_en_frame(frame, curso, grupo, simular=False):
         _esperar_grupos_nueva_app(frame)
         selector_modalidad = frame.locator("#selModalidad")
         if selector_modalidad.count() and selector_modalidad.is_visible():
-            opciones_modalidad = selector_modalidad.evaluate_all(
+            opciones_modalidad = selector_modalidad.locator("option").evaluate_all(
                 "els => els.map(e => e.value).filter(Boolean)"
             )
             modalidad_actual = selector_modalidad.input_value()
@@ -1262,11 +1285,17 @@ def modo_postular(cfg, args):
     sys.exit(0 if ok else 1)
 
 
-def enviar_todos(cfg, tutor, solo_contar=False, calientes=None):
-    """Manda TODOS los grupos disponibles ahora, cada uno con su botón. No toca
+def enviar_todos(cfg, tutor, solo_contar=False, calientes=None, modalidad_objetivo=None):
+    """Manda los grupos disponibles de las modalidades solicitadas. No toca
     el estado del vigilante, así que no afecta a los avisos futuros."""
     p = calientes.p if calientes is not None else None
-    actual = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"), p=p, tutor=tutor)
+    actual = leer_todos_los_cursos(
+        cfg,
+        kt_id=tutor.get("kt_id"),
+        p=p,
+        tutor=tutor,
+        modalidad_objetivo=modalidad_objetivo,
+    )
     lista, vistos = [], set()
     for curso, lineas in actual.items():
         for g in parsear_grupos(lineas):
@@ -1285,8 +1314,10 @@ def enviar_todos(cfg, tutor, solo_contar=False, calientes=None):
         if avisar(cfg, tutor, f"📋 {curso}", formatear_grupo(g), prioridad=3, grupo=(curso, g["id"])):
             enviados += 1
         time.sleep(1.2)  # Telegram admite ~1 mensaje por segundo en un mismo chat
-    avisar(cfg, tutor, "📋 Lista completa enviada",
-              f"{enviados} de {len(lista)} grupos disponibles ahora.\n" +
+    tipo = "grupos Individual (1-1)" if modalidad_objetivo == "individual" else "grupos disponibles"
+    titulo = "📋 Lista completa de grupos 1-1 enviada" if modalidad_objetivo == "individual" else "📋 Lista completa enviada"
+    avisar(cfg, tutor, titulo,
+              f"{enviados} de {len(lista)} {tipo} ahora.\n" +
               "\n".join(f"• {c}: {n}" for c, n in por_curso.items()),
               prioridad=3)
     return len(lista)
@@ -1353,6 +1384,16 @@ def comando_todos(cfg, tutor, calientes):
     enviar_todos(cfg, tutor, calientes=calientes)
 
 
+def comando_individuales(cfg, tutor, calientes):
+    avisar(cfg, tutor, "🔎 Buscando grupos Individual (1-1)…", "Esto puede tardar uno o dos minutos.", prioridad=2)
+    try:
+        enviar_todos(cfg, tutor, calientes=calientes, modalidad_objetivo="individual")
+    except Exception as e:
+        detalle = _error_sin_credenciales(e, tutor, cfg)
+        log(f"Error en /individuales: {detalle}")
+        avisar(cfg, tutor, "❌ No se pudieron cargar grupos 1-1", str(e)[:500], prioridad=3)
+
+
 def comando_estadisticas(cfg, tutor):
     avisar(cfg, tutor, "📊 Estadísticas", estadisticas(tutor), prioridad=2)
 
@@ -1371,6 +1412,7 @@ def modo_bot(cfg, args):
     comandos = {
         "mispostulaciones": lambda c, t: comando_mispostulaciones(c, t, cal),
         "todos": lambda c, t: comando_todos(c, t, cal),
+        "individuales": lambda c, t: comando_individuales(c, t, cal),
         "estadisticas": comando_estadisticas,
     }
     try:

@@ -194,6 +194,7 @@ AYUDA = (
     "empieza y termina dentro de tu horario. Mañana = 6–12, tarde = 12–18, noche = 18–24.\n\n"
     "Otros comandos:\n"
     "• /todos — ver todos los grupos disponibles ahora mismo\n"
+    "• /individuales — ver solo los grupos Individual (1-1)\n"
     "• /mispostulaciones — a qué grupos ya te postulaste\n"
     "• /estadisticas — qué días y horas salen más grupos"
 )
