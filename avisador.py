@@ -369,7 +369,7 @@ def texto_estable(frame, max_seg=20):
     return anterior or ""
 
 
-def _esperar_grupos_nueva_app(frame, timeout_ms=30000):
+def _esperar_grupos_nueva_app(frame, timeout_ms=60000):
     frame.wait_for_function(
         """() => {
             const grid = document.querySelector('#gruposGrid');
@@ -808,7 +808,9 @@ def _postular_en_frame(frame, curso, grupo, simular=False):
             log(f"Error al pulsar Postularme ({grupo}): {detalle}")
             return False, "No pude confirmar el resultado. Revisa Mis postulaciones antes de intentarlo otra vez."
 
-        fin = time.time() + 35
+        # La nueva app puede tardar más de un minuto en contestar el callback
+        # de Apps Script. No se vuelve a pulsar el botón si queda pendiente.
+        fin = time.time() + 90
         ultimo_estado = None
         while time.time() < fin:
             try:
