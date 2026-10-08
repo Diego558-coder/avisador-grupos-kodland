@@ -831,50 +831,72 @@ def _postular_en_frame(frame, curso, grupo, simular=False):
     """Hace la postulación sobre una página de la app ya abierta."""
     if frame.locator("#gruposGrid").count():
         opcion_curso, opciones_curso = _resolver_opcion_curso(frame, curso)
-        if opcion_curso is None:
-            disponibles = ", ".join(o["text"] or o["value"] for o in opciones_curso[:20]) or "ninguno"
-            log(f"Curso solicitado no disponible: {curso!r}; opciones actuales: {disponibles}")
-            return False, (
-                f"El curso {curso!r} del aviso ya no coincide con la app. "
-                f"Cursos actuales: {disponibles[:180]}"
-            )
-        frame.select_option(SELECTOR_CURSO, value=opcion_curso["value"], timeout=8000)
-        _esperar_grupos_nueva_app(frame)
         selector_modalidad = frame.locator("#selModalidad")
-        if selector_modalidad.count() and selector_modalidad.is_visible():
-            opciones_modalidad = selector_modalidad.locator("option").evaluate_all(
-                "els => els.map(e => e.value).filter(Boolean)"
-            )
-            modalidad_actual = selector_modalidad.input_value()
-            modalidades = ([modalidad_actual] if modalidad_actual in opciones_modalidad else []) + [
-                m for m in opciones_modalidad if m != modalidad_actual
-            ]
-        else:
-            modalidades = [None]
-
+        modalidades = _modalidades_a_leer(frame)
+        candidatos = list(opciones_curso)
+        if opcion_curso:
+            candidatos.remove(opcion_curso)
+            candidatos.insert(0, opcion_curso)
         tarjetas = frame.locator("#gruposGrid .card-group-item")
         tarjeta = None
+        curso_encontrado = None
+        modalidad_encontrada = None
+        ultimo_error_carga = None
+
         for modo in modalidades:
             if modo and selector_modalidad.input_value() != modo:
+                curso_seleccionado = frame.locator(SELECTOR_CURSO).input_value()
                 selector_modalidad.select_option(value=modo)
-                _esperar_grupos_nueva_app(frame)
-            for indice in range(tarjetas.count()):
-                candidata = tarjetas.nth(indice)
-                encabezado = candidata.locator("h6")
-                codigo = encabezado.first.inner_text().strip() if encabezado.count() else ""
-                if codigo == grupo:
-                    tarjeta = candidata
+                if curso_seleccionado:
+                    try:
+                        _esperar_grupos_nueva_app(frame, timeout_ms=12000)
+                    except Exception as e:
+                        ultimo_error_carga = type(e).__name__
+
+            for opcion in candidatos:
+                try:
+                    frame.select_option(SELECTOR_CURSO, value=opcion["value"], timeout=8000)
+                    _esperar_grupos_nueva_app(frame, timeout_ms=12000)
+                except Exception as e:
+                    ultimo_error_carga = type(e).__name__
+                    continue
+
+                for indice in range(tarjetas.count()):
+                    candidata = tarjetas.nth(indice)
+                    encabezado = candidata.locator("h6")
+                    codigo = encabezado.first.inner_text().strip() if encabezado.count() else ""
+                    if codigo == grupo:
+                        tarjeta = candidata
+                        curso_encontrado = opcion["text"]
+                        modalidad_encontrada = modo or "grupal"
+                        break
+                if tarjeta is not None:
                     break
             if tarjeta is not None:
                 break
         if tarjeta is None:
-            return False, f"El grupo {grupo} ya no está disponible."
+            mensaje = f"No encontré el grupo {grupo} en los cursos ni modalidades habilitados para tu cuenta."
+            if ultimo_error_carga:
+                mensaje += f" Hubo errores de carga ({ultimo_error_carga}); revisa la app y vuelve a probar."
+            log(f"Grupo no localizado: id={grupo}, cursos revisados={len(candidatos)}, "
+                f"modalidades={modalidades}, error_carga={ultimo_error_carga or 'ninguno'}")
+            return False, mensaje
         clases = (tarjeta.get_attribute("class") or "").split()
         boton = tarjeta.locator("button[id^='btn-apply-']")
-        if "is-applied" in clases or not boton.count() or boton.is_disabled():
+        if "is-applied" in clases:
             return True, f"Ya estabas postulado al grupo {grupo}."
+        if not boton.count():
+            return False, f"Encontré el grupo {grupo}, pero la app no mostró su botón de postulación."
+        if boton.is_disabled():
+            texto_boton = boton.inner_text().strip()
+            if "ya postulado" in texto_boton.lower():
+                return True, f"Ya estabas postulado al grupo {grupo}."
+            return False, f"El botón de postulación para {grupo} está deshabilitado en la app."
         if simular:
-            return True, f"SIMULACIÓN: el grupo {grupo} está listo. No se envió nada."
+            return True, (
+                f"SIMULACIÓN: {grupo} aparece en {curso_encontrado} ({modalidad_encontrada}). "
+                "No se envió nada."
+            )
 
         try:
             frame.evaluate("cerrarAlerta()")
