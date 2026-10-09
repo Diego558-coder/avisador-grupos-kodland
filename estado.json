@@ -644,14 +644,14 @@
       "🕐 Sábado 10h COL (12h ARG)",
       "📅 2026-10-17 10:00",
       "🏷️ COL14242_SA-10",
-      "[COL14544_MA-18][1209] Unity Game Developer (COL14544_MA-18) · 90 min",
-      "🕐 Martes 18h COL (20h ARG)",
-      "📅 2026-10-20 18:00",
-      "🏷️ COL14544_MA-18",
       "[COL14346_MA-18][1209] Unity Game Developer (COL14346_MA-18) · 90 min",
       "🕐 Martes 18h COL (20h ARG)",
       "📅 2026-10-20 18:00",
       "🏷️ COL14346_MA-18",
+      "[COL14544_MA-18][1209] Unity Game Developer (COL14544_MA-18) · 90 min",
+      "🕐 Martes 18h COL (20h ARG)",
+      "📅 2026-10-20 18:00",
+      "🏷️ COL14544_MA-18",
       "[COL14383_DO-15][1209] Unity Game Developer (COL14383_DO-15) · 90 min",
       "🕐 Domingo 15h COL (17h ARG)",
       "📅 2026-11-01 15:00",
@@ -756,10 +756,6 @@
       "🕐 Viernes 16h COL (18h ARG)",
       "📅 2026-10-23 16:00",
       "🏷️ COL14344_VI-16",
-      "[COL14345_DO-10][1442] Roblox Game Developer Lvl 2 (COL14345_DO-10) · 90 min",
-      "🕐 Domingo 10h COL (12h ARG)",
-      "📅 2026-10-25 10:00",
-      "🏷️ COL14345_DO-10",
       "[COL14117_JU-20][1442] Roblox Game Developer Lvl 2 (COL14117_JU-20) · 90 min",
       "🕐 Jueves 20h COL (22h ARG)",
       "📅 2026-11-05 20:00",
@@ -769,10 +765,6 @@
     "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
     "Code & Game lvl 2": [
-      "[COL14220_MI-10][2060] Code & Game lvl 2 (COL14220_MI-10) · 90 min",
-      "🕐 Miércoles 10h COL (12h ARG)",
-      "📅 2026-10-21 10:00",
-      "🏷️ COL14220_MI-10",
       "[COL14342_SA-10][2060] Code & Game lvl 2 (COL14342_SA-10) · 90 min",
       "🕐 Sábado 10h COL (12h ARG)",
       "📅 2026-10-24 10:00",
@@ -858,6 +850,5 @@
     ]
   },
   "vacios": {},
-  "ultimo_heartbeat": "2026-10-09T05:00:47+00:00",
-  "error_avisado": true
+  "ultimo_heartbeat": "2026-10-09T05:00:47+00:00"
 }
