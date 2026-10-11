@@ -109,7 +109,7 @@ def cargar_config():
     if not cfg["tutores"]:
         sys.exit("Falta al menos un tutor: secreto TUTORES o 'tutores' en config.json.")
     cfg.setdefault("intervalo_minutos", 5)
-    cfg.setdefault("heartbeat_horas", 24)
+    cfg.setdefault("heartbeat_horas", 12)
     cfg.setdefault("cursos_a_vigilar", [])
     cfg.setdefault("ignorar_lineas", [])
     return cfg
@@ -764,7 +764,12 @@ def revisar(cfg, estado, tutor):
             guardar_json(ruta, estado)
         return estado
     except Exception as e:
-        log(f"ERROR inesperado: {e}")
+        msg = _error_sin_credenciales(e, tutor, cfg)
+        log(f"ERROR inesperado: {msg}")
+        if not estado.get("error_avisado"):
+            avisar(cfg, tutor, "Avisador Kodland: problema", msg, prioridad=3)
+            estado["error_avisado"] = True
+            guardar_json(ruta, estado)
         return estado
 
     anterior = estado.get("cursos", {})
@@ -789,12 +794,15 @@ def revisar(cfg, estado, tutor):
         heartbeat = ahora  # empieza a contar desde ahora, sin avisar
     elif (ahora - heartbeat).total_seconds() >= float(cfg["heartbeat_horas"]) * 3600:
         total = sum(len(v) for v in actual.values())
-        if avisar(
+        log(f"Heartbeat vencido: último={heartbeat.isoformat(timespec='seconds')}; enviando confirmación.")
+        enviado = avisar(
             cfg, tutor,
             "Avisador Kodland: sigo activo",
             f"Revisando {len(actual)} cursos ({total} líneas visibles ahora).",
-            prioridad=2,
-        ):
+            prioridad=3,
+        )
+        log("Heartbeat enviado correctamente." if enviado else "ERROR: no se pudo enviar el heartbeat.")
+        if enviado:
             heartbeat = ahora
 
     # Si un curso da 0 grupos, puede ser real o solo la app cargando lento en esa
