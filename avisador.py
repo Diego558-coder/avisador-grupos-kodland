@@ -1409,6 +1409,72 @@ def comando_todos(cfg, tutor, calientes):
     enviar_todos(cfg, tutor, calientes=calientes)
 
 
+def comando_nuevos(cfg, tutor, calientes):
+    avisar(
+        cfg,
+        tutor,
+        "🔎 Revisando grupos nuevos…",
+        "Comparo la app en vivo con la última revisión guardada. Esta consulta no cambia el historial del vigilante.",
+        prioridad=2,
+    )
+    try:
+        p = calientes.p if calientes is not None else None
+        actual = leer_todos_los_cursos(
+            cfg, kt_id=tutor.get("kt_id"), p=p, tutor=tutor
+        )
+        anterior = estado_actual(tutor).get("cursos", {})
+        if not anterior:
+            avisar(
+                cfg,
+                tutor,
+                "⚠️ No hay línea base",
+                "No puedo distinguir grupos nuevos porque todavía no hay una revisión guardada. El vigilante debe completar primero un escaneo normal.",
+                prioridad=3,
+            )
+            return
+
+        cambios = comparar(anterior, actual)
+        nuevos, vistos = [], set()
+        for curso, lineas in cambios.items():
+            for grupo in parsear_grupos(lineas):
+                if grupo["id"] and grupo["id"] not in vistos:
+                    vistos.add(grupo["id"])
+                    nuevos.append((curso, grupo))
+
+        if not nuevos:
+            avisar(
+                cfg,
+                tutor,
+                "✅ No hay grupos nuevos",
+                "La lectura en vivo no encontró IDs de grupo que falten en la última revisión guardada. No modifiqué el estado del vigilante.",
+                prioridad=3,
+            )
+            return
+
+        cuerpo = [
+            f"Encontré {len(nuevos)} grupos cuyo ID no aparece en la última revisión guardada.",
+            "Esta consulta no modifica el historial; el vigilante conserva su deduplicación normal.",
+            "",
+        ]
+        for curso, grupo in nuevos[:15]:
+            cuerpo.append(f"📚 {curso}")
+            cuerpo.append(formatear_grupo(grupo))
+            cuerpo.append("")
+        if len(nuevos) > 15:
+            cuerpo.append(f"… y {len(nuevos) - 15} grupos más")
+        avisar(cfg, tutor, "🆕 Grupos pendientes de avisar", "\n".join(cuerpo).strip(), prioridad=3)
+    except Exception as e:
+        detalle = _error_sin_credenciales(e, tutor, cfg)
+        log(f"Error en /nuevos: {detalle}")
+        avisar(
+            cfg,
+            tutor,
+            "❌ No se pudo comprobar",
+            f"La lectura en vivo falló: {detalle}",
+            prioridad=3,
+        )
+
+
 def comando_individuales(cfg, tutor, calientes):
     avisar(cfg, tutor, "🔎 Buscando grupos Individual (1-1)…", "Esto puede tardar uno o dos minutos.", prioridad=2)
     try:
@@ -1437,6 +1503,7 @@ def modo_bot(cfg, args):
     comandos = {
         "mispostulaciones": lambda c, t: comando_mispostulaciones(c, t, cal),
         "todos": lambda c, t: comando_todos(c, t, cal),
+        "nuevos": lambda c, t: comando_nuevos(c, t, cal),
         "individuales": lambda c, t: comando_individuales(c, t, cal),
         "estadisticas": comando_estadisticas,
     }
