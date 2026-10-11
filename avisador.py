@@ -513,13 +513,20 @@ def texto_visible(page):
 
 
 def leer_todos_los_cursos(
-    cfg, headless=True, kt_id=None, p=None, tutor=None, modalidad_objetivo=None
+    cfg,
+    headless=True,
+    kt_id=None,
+    p=None,
+    tutor=None,
+    modalidad_objetivo=None,
+    tolerar_errores_carga=False,
 ):
     """Devuelve {curso: [lineas de texto]} o lanza excepción.
     `p`: un Playwright ya iniciado, para reutilizarlo (p. ej. el del bot: Playwright
     no deja abrir uno nuevo con sync_playwright() dentro del mismo proceso si ya
     hay otro corriendo)."""
     resultado = {}
+    errores_lectura = []
     propio = p is None
     if propio:
         p = sync_playwright().start()
@@ -553,20 +560,40 @@ def leer_todos_los_cursos(
             if frame.locator("#gruposGrid").count():
                 modalidad = frame.locator("#selModalidad")
                 modalidades = _modalidades_a_leer(frame, modalidad_objetivo)
+                timeout_selector = 8000 if tolerar_errores_carga else 30000
+                timeout_carga = 12000 if tolerar_errores_carga else 60000
                 for modo in modalidades:
                     if modo and modalidad.input_value() != modo:
                         frame.locator(SELECTOR_CURSO).evaluate("selector => { selector.value = ''; }")
-                        modalidad.select_option(value=modo)
+                        modalidad.select_option(value=modo, timeout=timeout_selector)
                     for opcion in opciones:
                         log(f"Consultando {opcion['text']} ({modo or 'grupal'})...")
-                        frame.select_option(SELECTOR_CURSO, value=opcion["value"])
-                        _esperar_grupos_nueva_app(frame)
-                        lineas_grupo = _lineas_tarjetas_nueva_app(frame, opcion["text"])
+                        try:
+                            frame.select_option(
+                                SELECTOR_CURSO,
+                                value=opcion["value"],
+                                timeout=timeout_selector,
+                            )
+                            _esperar_grupos_nueva_app(frame, timeout_ms=timeout_carga)
+                            lineas_grupo = _lineas_tarjetas_nueva_app(frame, opcion["text"])
+                        except Exception as e:
+                            if not tolerar_errores_carga:
+                                raise
+                            errores_lectura.append(
+                                f"{opcion['text']} ({modo or 'grupal'}): {type(e).__name__}"
+                            )
+                            log(
+                                f"Lectura incompleta: se omite {opcion['text']} "
+                                f"({modo or 'grupal'}): {type(e).__name__}"
+                            )
+                            continue
                         resultado[opcion["text"]] = _deduplicar_grupos_por_id(
                             resultado.get(opcion["text"], []) + lineas_grupo
                         )
                         log(f"  {opcion['text']} ({modo or 'grupal'}): "
                             f"{frame.locator('#gruposGrid .card-group-item').count()} tarjetas visibles")
+                if tolerar_errores_carga:
+                    return resultado, errores_lectura
                 return resultado
 
             if modalidad_objetivo:
@@ -606,6 +633,8 @@ def leer_todos_los_cursos(
                     lineas.append(l)
                 resultado[o["text"]] = lineas
                 log(f"  {o['text']}: {len(lineas)} líneas")
+            if tolerar_errores_carga:
+                return resultado, errores_lectura
         finally:
             cerrar_contexto(ctx, browser)
     finally:
@@ -1419,8 +1448,12 @@ def comando_nuevos(cfg, tutor, calientes):
     )
     try:
         p = calientes.p if calientes is not None else None
-        actual = leer_todos_los_cursos(
-            cfg, kt_id=tutor.get("kt_id"), p=p, tutor=tutor
+        actual, errores_lectura = leer_todos_los_cursos(
+            cfg,
+            kt_id=tutor.get("kt_id"),
+            p=p,
+            tutor=tutor,
+            tolerar_errores_carga=True,
         )
         anterior = estado_actual(tutor).get("cursos", {})
         if not anterior:
@@ -1442,11 +1475,21 @@ def comando_nuevos(cfg, tutor, calientes):
                     nuevos.append((curso, grupo))
 
         if not nuevos:
+            detalle_parcial = ""
+            if errores_lectura:
+                detalle_parcial = (
+                    "\n\n⚠️ Lectura parcial; no se pudieron revisar: "
+                    + "; ".join(errores_lectura[:8])
+                )
             avisar(
                 cfg,
                 tutor,
-                "✅ No hay grupos nuevos",
-                "La lectura en vivo no encontró IDs de grupo que falten en la última revisión guardada. No modifiqué el estado del vigilante.",
+                "⚠️ Revisión parcial" if errores_lectura else "✅ No hay grupos nuevos",
+                (
+                    "No encontré IDs nuevos entre los cursos que sí cargaron. No modifiqué el estado del vigilante."
+                    if errores_lectura
+                    else "La lectura en vivo no encontró IDs de grupo que falten en la última revisión guardada. No modifiqué el estado del vigilante."
+                ) + detalle_parcial,
                 prioridad=3,
             )
             return
@@ -1456,6 +1499,12 @@ def comando_nuevos(cfg, tutor, calientes):
             "Esta consulta no modifica el historial; el vigilante conserva su deduplicación normal.",
             "",
         ]
+        if errores_lectura:
+            cuerpo.extend([
+                "⚠️ Lectura parcial; algunos cursos/modos no cargaron:",
+                *errores_lectura[:8],
+                "",
+            ])
         for curso, grupo in nuevos[:15]:
             cuerpo.append(f"📚 {curso}")
             cuerpo.append(formatear_grupo(grupo))
