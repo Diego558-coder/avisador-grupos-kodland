@@ -555,11 +555,10 @@ def leer_todos_los_cursos(
                 modalidades = _modalidades_a_leer(frame, modalidad_objetivo)
                 for modo in modalidades:
                     if modo and modalidad.input_value() != modo:
-                        seleccion_actual = frame.locator(SELECTOR_CURSO).input_value()
+                        frame.locator(SELECTOR_CURSO).evaluate("selector => { selector.value = ''; }")
                         modalidad.select_option(value=modo)
-                        if seleccion_actual:
-                            _esperar_grupos_nueva_app(frame)
                     for opcion in opciones:
+                        log(f"Consultando {opcion['text']} ({modo or 'grupal'})...")
                         frame.select_option(SELECTOR_CURSO, value=opcion["value"])
                         _esperar_grupos_nueva_app(frame)
                         lineas_grupo = _lineas_tarjetas_nueva_app(frame, opcion["text"])
@@ -853,16 +852,12 @@ def _postular_en_frame(frame, curso, grupo, simular=False):
 
         for modo in modalidades:
             if modo and selector_modalidad.input_value() != modo:
-                curso_seleccionado = frame.locator(SELECTOR_CURSO).input_value()
+                frame.locator(SELECTOR_CURSO).evaluate("selector => { selector.value = ''; }")
                 selector_modalidad.select_option(value=modo)
-                if curso_seleccionado:
-                    try:
-                        _esperar_grupos_nueva_app(frame, timeout_ms=12000)
-                    except Exception as e:
-                        ultimo_error_carga = type(e).__name__
 
             for opcion in candidatos:
                 try:
+                    log(f"Buscando grupo {grupo} en {opcion['text']} ({modo or 'grupal'})...")
                     frame.select_option(SELECTOR_CURSO, value=opcion["value"], timeout=8000)
                     _esperar_grupos_nueva_app(frame, timeout_ms=12000)
                 except Exception as e:
