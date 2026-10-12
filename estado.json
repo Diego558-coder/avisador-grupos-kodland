@@ -666,22 +666,18 @@
       "🏷️ COL14460_JU-19"
     ],
     "Roblox Game Developer": [
-      "[COL14222_DO-11][1720] Roblox Game Developer (COL14222_DO-11) · 60 min",
-      "🕐 Domingo 11h COL (13h ARG)",
-      "📅 2026-10-11 11:00",
-      "🏷️ COL14222_DO-11",
       "[COL14225_SA-11][1720] Roblox Game Developer (COL14225_SA-11) · 60 min",
       "🕐 Sábado 11h COL (13h ARG)",
       "📅 2026-10-17 11:00",
       "🏷️ COL14225_SA-11",
-      "[COL14419_LU-17][1720] Roblox Game Developer (COL14419_LU-17) · 60 min",
-      "🕐 Lunes 17h COL (19h ARG)",
-      "📅 2026-10-19 17:00",
-      "🏷️ COL14419_LU-17",
       "[COL14495_LU-17][1720] Roblox Game Developer (COL14495_LU-17) · 60 min",
       "🕐 Lunes 17h COL (19h ARG)",
       "📅 2026-10-19 17:00",
       "🏷️ COL14495_LU-17",
+      "[COL14419_LU-17][1720] Roblox Game Developer (COL14419_LU-17) · 60 min",
+      "🕐 Lunes 17h COL (19h ARG)",
+      "📅 2026-10-19 17:00",
+      "🏷️ COL14419_LU-17",
       "[COL14288_MI-16][1720] Roblox Game Developer (COL14288_MI-16) · 60 min",
       "🕐 Miércoles 16h COL (18h ARG)",
       "📅 2026-10-21 16:00",
@@ -797,10 +793,6 @@
       "🕐 Lunes 18h COL (20h ARG)",
       "📅 2026-10-12 18:00",
       "🏷️ COL14201_LU-18",
-      "[COL14223_LU-19][2124] Minecraft Craftforge Beginner (COL14223_LU-19) · 60 min",
-      "🕐 Lunes 19h COL (21h ARG)",
-      "📅 2026-10-12 19:00",
-      "🏷️ COL14223_LU-19",
       "[COL14224_SA-17][2124] Minecraft Craftforge Beginner (COL14224_SA-17) · 60 min",
       "🕐 Sábado 17h COL (19h ARG)",
       "📅 2026-10-17 17:00",
@@ -850,6 +842,5 @@
     ]
   },
   "vacios": {},
-  "ultimo_heartbeat": "2026-10-09T05:00:47+00:00",
-  "error_avisado": true
+  "ultimo_heartbeat": "2026-10-12T20:57:44+00:00"
 }
