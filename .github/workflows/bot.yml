@@ -34,6 +34,8 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
+      # Al arrancar, el bot manda "Bot de Telegram ✅" al primer chat configurado.
+      # Si los Secrets apuntan a otro bot o chat, falla aquí de forma visible.
       - name: Atender los botones (~5,5 horas)
         env:
           PW_CANAL: chrome   # usa el Chrome ya instalado en el servidor de GitHub

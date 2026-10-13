@@ -1583,6 +1583,22 @@ def modo_bot(cfg, args):
         # de chat, que es justo lo que hace falta para configurarlo.
         log("Ningún tutor tiene 'telegram_chat' todavía: el bot solo dirá el ID de chat de quien le escriba.")
     cal = NavegadorCaliente(cfg)
+    # Confirma que el token y el chat de los Secrets corresponden al bot esperado
+    # ANTES de quedar esperando updates. Sin esto, un token de otro bot también es
+    # válido para Telegram, pero nunca verá los mensajes que llegan a este chat.
+    principal = cfg["tutores"][0]
+    if not avisar(
+        cfg,
+        principal,
+        "Bot de Telegram ✅",
+        "Estoy conectado y listo para atender mensajes.",
+        prioridad=2,
+    ):
+        cal.cerrar()
+        raise RuntimeError(
+            "Telegram rechazó el aviso de inicio. Revisa los Secrets TELEGRAM_TOKEN y TUTORES "
+            "del repositorio: deben ser el token y el chat de este mismo bot."
+        )
     comandos = {
         "mispostulaciones": lambda c, t: comando_mispostulaciones(c, t, cal),
         "todos": lambda c, t: comando_todos(c, t, cal),

@@ -68,11 +68,27 @@ class EstadoYBusquedaTests(unittest.TestCase):
             "tutores": [{"pos": 1, "telegram_chat": "123"}],
         }
         with patch("avisador.NavegadorCaliente") as navegador, \
+             patch("avisador.avisar", return_value=True), \
              patch("avisador.tg.bucle") as bucle:
             avisador.modo_bot(cfg, args)
 
         self.assertIsNone(bucle.call_args.kwargs.get("al_iniciar"))
         self.assertIsNone(bucle.call_args.kwargs.get("en_reposo"))
+        navegador.return_value.cerrar.assert_called_once()
+
+    def test_bot_falla_visiblemente_si_los_secrets_de_telegram_no_corresponden(self):
+        args = types.SimpleNamespace(minutos=330)
+        cfg = {
+            "telegram_token": "token-de-prueba",
+            "tutores": [{"pos": 1, "telegram_chat": "123"}],
+        }
+        with patch("avisador.NavegadorCaliente") as navegador, \
+             patch("avisador.avisar", return_value=False), \
+             patch("avisador.tg.bucle") as bucle:
+            with self.assertRaisesRegex(RuntimeError, "TELEGRAM_TOKEN"):
+                avisador.modo_bot(cfg, args)
+
+        bucle.assert_not_called()
         navegador.return_value.cerrar.assert_called_once()
 
 
