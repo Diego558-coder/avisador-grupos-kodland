@@ -398,10 +398,6 @@
       "🕐 Lunes 17h COL (19h ARG)",
       "📅 2026-10-19 17:00",
       "🏷️ COL14495_LU-17",
-      "[COL14419_LU-17][1720] Roblox Game Developer (COL14419_LU-17) · 60 min",
-      "🕐 Lunes 17h COL (19h ARG)",
-      "📅 2026-10-19 17:00",
-      "🏷️ COL14419_LU-17",
       "[COL14288_MI-16][1720] Roblox Game Developer (COL14288_MI-16) · 60 min",
       "🕐 Miércoles 16h COL (18h ARG)",
       "📅 2026-10-21 16:00",
@@ -457,21 +453,13 @@
       "[COL14245_JU-18][1720] Roblox Game Developer (COL14245_JU-18) · 60 min",
       "🕐 Jueves 18h COL (20h ARG)",
       "📅 2026-11-05 18:00",
-      "🏷️ COL14245_JU-18",
-      "[COL14466_JU-17][1720] Roblox Game Developer (COL14466_JU-17) · 60 min",
-      "🕐 Jueves 17h COL (19h ARG)",
-      "📅 2026-11-12 17:00",
-      "🏷️ COL14466_JU-17"
+      "🏷️ COL14245_JU-18"
     ],
     "Roblox Game Developer Lvl 2": [
       "[COL14344_VI-16][1442] Roblox Game Developer Lvl 2 (COL14344_VI-16) · 90 min",
       "🕐 Viernes 16h COL (18h ARG)",
       "📅 2026-10-23 16:00",
       "🏷️ COL14344_VI-16",
-      "[COL14345_DO-10][1442] Roblox Game Developer Lvl 2 (COL14345_DO-10) · 90 min",
-      "🕐 Domingo 10h COL (12h ARG)",
-      "📅 2026-10-25 10:00",
-      "🏷️ COL14345_DO-10",
       "[COL14117_JU-20][1442] Roblox Game Developer Lvl 2 (COL14117_JU-20) · 90 min",
       "🕐 Jueves 20h COL (22h ARG)",
       "📅 2026-11-05 20:00",
@@ -481,10 +469,6 @@
     "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
     "Code & Game lvl 2": [
-      "[COL14220_MI-10][2060] Code & Game lvl 2 (COL14220_MI-10) · 90 min",
-      "🕐 Miércoles 10h COL (12h ARG)",
-      "📅 2026-10-21 10:00",
-      "🏷️ COL14220_MI-10",
       "[COL14342_SA-10][2060] Code & Game lvl 2 (COL14342_SA-10) · 90 min",
       "🕐 Sábado 10h COL (12h ARG)",
       "📅 2026-10-24 10:00",
@@ -517,10 +501,6 @@
       "🏷️ COL14463_MI-18"
     ],
     "Minecraft Craftforge Beginner": [
-      "[COL14201_LU-18][2124] Minecraft Craftforge Beginner (COL14201_LU-18) · 60 min",
-      "🕐 Lunes 18h COL (20h ARG)",
-      "📅 2026-10-12 18:00",
-      "🏷️ COL14201_LU-18",
       "[COL14224_SA-17][2124] Minecraft Craftforge Beginner (COL14224_SA-17) · 60 min",
       "🕐 Sábado 17h COL (19h ARG)",
       "📅 2026-10-17 17:00",
@@ -570,6 +550,5 @@
     ]
   },
   "vacios": {},
-  "ultimo_heartbeat": "2026-10-12T20:59:47+00:00",
-  "error_avisado": true
+  "ultimo_heartbeat": "2026-10-13T15:05:35+00:00"
 }
