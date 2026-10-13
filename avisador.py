@@ -1,4 +1,4 @@
-﻿"""
+"""
 Avisador de grupos Kodland
 --------------------------
 Revisa periódicamente la app de Google Apps Script de Kodland, recorre todos
@@ -369,14 +369,20 @@ def texto_estable(frame, max_seg=20):
     return anterior or ""
 
 
-def _esperar_grupos_nueva_app(frame, timeout_ms=60000):
+def _esperar_grupos_nueva_app(frame, timeout_ms=15000):
     frame.wait_for_function(
         """() => {
             const grid = document.querySelector('#gruposGrid');
             const spinner = document.querySelector('#gruposSpinner');
             const alert = document.querySelector('#alertBox');
-            return grid && spinner && spinner.classList.contains('d-none') &&
-                (grid.children.length > 0 || (alert && !alert.classList.contains('d-none')));
+            if (!grid || !spinner) return false;
+            const spinnerOculto = spinner.classList.contains('d-none');
+            if (!spinnerOculto) return false;
+            const alertVisible = alert && !alert.classList.contains('d-none');
+            const tieneTarjetas = grid.querySelectorAll('.card-group-item').length > 0;
+            const texto = (grid.innerText || '').toLowerCase();
+            const tieneMensaje = texto.includes('no hay grupos disponibles');
+            return tieneTarjetas || tieneMensaje || alertVisible;
         }""",
         timeout=timeout_ms,
     )
@@ -519,12 +525,10 @@ def leer_todos_los_cursos(
     p=None,
     tutor=None,
     modalidad_objetivo=None,
-    tolerar_errores_carga=False,
+    tolerar_errores_carga=True,
 ):
-    """Devuelve {curso: [lineas de texto]} o lanza excepción.
-    `p`: un Playwright ya iniciado, para reutilizarlo (p. ej. el del bot: Playwright
-    no deja abrir uno nuevo con sync_playwright() dentro del mismo proceso si ya
-    hay otro corriendo)."""
+    """Devuelve ({curso: [lineas de texto]}, [errores_lectura]).
+    `p`: un Playwright ya iniciado, para reutilizarlo."""
     resultado = {}
     errores_lectura = []
     propio = p is None
@@ -560,15 +564,22 @@ def leer_todos_los_cursos(
             if frame.locator("#gruposGrid").count():
                 modalidad = frame.locator("#selModalidad")
                 modalidades = _modalidades_a_leer(frame, modalidad_objetivo)
-                timeout_selector = 8000 if tolerar_errores_carga else 30000
-                timeout_carga = 12000 if tolerar_errores_carga else 60000
+                timeout_selector = 8000
+                timeout_carga = 15000
                 for modo in modalidades:
                     if modo and modalidad.input_value() != modo:
                         frame.locator(SELECTOR_CURSO).evaluate("selector => { selector.value = ''; }")
                         modalidad.select_option(value=modo, timeout=timeout_selector)
+                        time.sleep(0.8)
                     for opcion in opciones:
                         log(f"Consultando {opcion['text']} ({modo or 'grupal'})...")
                         try:
+                            frame.evaluate("""() => {
+                                const grid = document.querySelector('#gruposGrid');
+                                if (grid) grid.innerHTML = '';
+                                const spinner = document.querySelector('#gruposSpinner');
+                                if (spinner) spinner.classList.remove('d-none');
+                            }""")
                             frame.select_option(
                                 SELECTOR_CURSO,
                                 value=opcion["value"],
@@ -592,9 +603,8 @@ def leer_todos_los_cursos(
                         )
                         log(f"  {opcion['text']} ({modo or 'grupal'}): "
                             f"{frame.locator('#gruposGrid .card-group-item').count()} tarjetas visibles")
-                if tolerar_errores_carga:
-                    return resultado, errores_lectura
-                return resultado
+                        time.sleep(0.3)
+                return resultado, errores_lectura
 
             if modalidad_objetivo:
                 raise RuntimeError(
@@ -618,23 +628,30 @@ def leer_todos_los_cursos(
             }
 
             for o in opciones:
-                frame.select_option(SELECTOR_CURSO, value=o["value"])
-                texto = texto_estable(frame)
-                lineas = []
-                for l in texto.splitlines():
-                    l = " ".join(l.split())
-                    if not l or l in nombres_cursos or l.lower() in ignorar:
-                        continue
-                    bajo = l.lower()
-                    if bajo in ESTATICAS or bajo.startswith("hola,"):
-                        continue
-                    if bajo.startswith("no hay grupos") and "disponibles" in bajo:
-                        continue
-                    lineas.append(l)
-                resultado[o["text"]] = lineas
-                log(f"  {o['text']}: {len(lineas)} líneas")
-            if tolerar_errores_carga:
-                return resultado, errores_lectura
+                try:
+                    frame.select_option(SELECTOR_CURSO, value=o["value"])
+                    texto = texto_estable(frame)
+                    lineas = []
+                    for l in texto.splitlines():
+                        l = " ".join(l.split())
+                        if not l or l in nombres_cursos or l.lower() in ignorar:
+                            continue
+                        bajo = l.lower()
+                        if bajo in ESTATICAS or bajo.startswith("hola,"):
+                            continue
+                        if bajo.startswith("no hay grupos") and "disponibles" in bajo:
+                            continue
+                        lineas.append(l)
+                    resultado[o["text"]] = lineas
+                    log(f"  {o['text']}: {len(lineas)} líneas")
+                except Exception as e:
+                    if not tolerar_errores_carga:
+                        raise
+                    errores_lectura.append(f"{o['text']}: {type(e).__name__}")
+                    log(f"Lectura incompleta: se omite {o['text']}: {type(e).__name__}")
+                    continue
+                time.sleep(0.3)
+            return resultado, errores_lectura
         finally:
             cerrar_contexto(ctx, browser)
     finally:
@@ -779,7 +796,9 @@ def revisar(cfg, estado, tutor):
     ruta = ruta_estado(tutor)
     log("Revisando...")
     try:
-        actual = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"), tutor=tutor)
+        actual, errores_lectura = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"), tutor=tutor)
+        if errores_lectura:
+            log(f"Revisión con lecturas incompletas ({len(errores_lectura)}): {', '.join(errores_lectura[:6])}")
     except RuntimeError as e:
         if str(e) == "SESION":
             msg = "No se pudo entrar a la app de Kodland. Revisa que el ID de tutor siga siendo válido."
@@ -1343,12 +1362,13 @@ def enviar_todos(cfg, tutor, solo_contar=False, calientes=None, modalidad_objeti
     """Manda los grupos disponibles de las modalidades solicitadas. No toca
     el estado del vigilante, así que no afecta a los avisos futuros."""
     p = calientes.p if calientes is not None else None
-    actual = leer_todos_los_cursos(
+    actual, errores_lectura = leer_todos_los_cursos(
         cfg,
         kt_id=tutor.get("kt_id"),
         p=p,
         tutor=tutor,
         modalidad_objetivo=modalidad_objetivo,
+        tolerar_errores_carga=True,
     )
     lista, vistos = [], set()
     for curso, lineas in actual.items():
@@ -1370,9 +1390,13 @@ def enviar_todos(cfg, tutor, solo_contar=False, calientes=None, modalidad_objeti
         time.sleep(1.2)  # Telegram admite ~1 mensaje por segundo en un mismo chat
     tipo = "grupos Individual (1-1)" if modalidad_objetivo == "individual" else "grupos disponibles"
     titulo = "📋 Lista completa de grupos 1-1 enviada" if modalidad_objetivo == "individual" else "📋 Lista completa enviada"
+    nota_errores = ""
+    if errores_lectura:
+        nota_errores = f"\n\n⚠️ {len(errores_lectura)} consulta(s) no respondieron a tiempo por lentitud de la app."
     avisar(cfg, tutor, titulo,
               f"{enviados} de {len(lista)} {tipo} ahora.\n" +
-              "\n".join(f"• {c}: {n}" for c, n in por_curso.items()),
+              "\n".join(f"• {c}: {n}" for c, n in por_curso.items()) +
+              nota_errores,
               prioridad=3)
     return len(lista)
 
@@ -1435,7 +1459,12 @@ def comando_mispostulaciones(cfg, tutor, calientes):
 
 def comando_todos(cfg, tutor, calientes):
     avisar(cfg, tutor, "🔎 Buscando todos los grupos…", "Esto puede tardar uno o dos minutos.", prioridad=2)
-    enviar_todos(cfg, tutor, calientes=calientes)
+    try:
+        enviar_todos(cfg, tutor, calientes=calientes)
+    except Exception as e:
+        detalle = _error_sin_credenciales(e, tutor, cfg)
+        log(f"Error en /todos: {detalle}")
+        avisar(cfg, tutor, "❌ No se pudieron cargar los grupos", f"Problema: {detalle}", prioridad=3)
 
 
 def comando_nuevos(cfg, tutor, calientes):
@@ -1663,8 +1692,8 @@ def main():
     if args.ver:
         global leer_todos_los_cursos
         original = leer_todos_los_cursos
-        leer_todos_los_cursos = lambda c, kt_id=None, p=None, tutor=None: original(
-            c, headless=False, kt_id=kt_id, p=p, tutor=tutor
+        leer_todos_los_cursos = lambda c, *a, **kw: original(
+            c, headless=False, *a, **kw
         )
 
     def revisar_todos():
