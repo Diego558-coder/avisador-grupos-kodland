@@ -61,6 +61,20 @@ class EstadoYBusquedaTests(unittest.TestCase):
 
         self.assertEqual(lectura.call_args.kwargs["p"], "playwright-existente")
 
+    def test_bot_empieza_a_escuchar_sin_abrir_kodland(self):
+        args = types.SimpleNamespace(minutos=330)
+        cfg = {
+            "telegram_token": "token-de-prueba",
+            "tutores": [{"pos": 1, "telegram_chat": "123"}],
+        }
+        with patch("avisador.NavegadorCaliente") as navegador, \
+             patch("avisador.tg.bucle") as bucle:
+            avisador.modo_bot(cfg, args)
+
+        self.assertIsNone(bucle.call_args.kwargs.get("al_iniciar"))
+        self.assertIsNone(bucle.call_args.kwargs.get("en_reposo"))
+        navegador.return_value.cerrar.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()

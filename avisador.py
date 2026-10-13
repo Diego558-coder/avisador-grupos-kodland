@@ -1583,7 +1583,6 @@ def modo_bot(cfg, args):
         # de chat, que es justo lo que hace falta para configurarlo.
         log("Ningún tutor tiene 'telegram_chat' todavía: el bot solo dirá el ID de chat de quien le escriba.")
     cal = NavegadorCaliente(cfg)
-    tutores_bot = list(chats.values())
     comandos = {
         "mispostulaciones": lambda c, t: comando_mispostulaciones(c, t, cal),
         "todos": lambda c, t: comando_todos(c, t, cal),
@@ -1596,8 +1595,6 @@ def modo_bot(cfg, args):
             cfg, chats,
             lambda c, tutor, curso, grupo: postular(c, tutor, curso, grupo, calientes=cal),
             log, minutos=float(args.minutos or 330),
-            al_iniciar=lambda: cal.preparar_todos(tutores_bot),
-            en_reposo=lambda: cal.mantener(tutores_bot),
             buscar_fn=lambda c, t, texto: buscar_grupos(c, t, texto, calientes=cal),
             comandos=comandos,
         )
