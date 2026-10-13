@@ -1418,7 +1418,7 @@ def estado_actual(tutor):
     return cargar_json(ruta, {})
 
 
-def buscar_grupos(cfg, tutor, texto):
+def buscar_grupos(cfg, tutor, texto, calientes=None):
     """Consulta la app en vivo y filtra por día y hora para el bot de Telegram.
 
     No usa ``estado.json``: ese archivo es una línea base para detectar novedades
@@ -1429,7 +1429,11 @@ def buscar_grupos(cfg, tutor, texto):
         return {"error": "Dime qué días y horas puedes. Ejemplo: /grupos sábado y domingo de 8 a 12\nEscribe /ayuda para ver más."}
     try:
         actual, errores_lectura = leer_todos_los_cursos(
-            cfg, kt_id=tutor.get("kt_id"), tutor=tutor, tolerar_errores_carga=True,
+            cfg,
+            kt_id=tutor.get("kt_id"),
+            p=calientes.p if calientes is not None else None,
+            tutor=tutor,
+            tolerar_errores_carga=True,
         )
     except Exception as e:
         detalle = _error_sin_credenciales(e, tutor, cfg)
@@ -1594,7 +1598,7 @@ def modo_bot(cfg, args):
             log, minutos=float(args.minutos or 330),
             al_iniciar=lambda: cal.preparar_todos(tutores_bot),
             en_reposo=lambda: cal.mantener(tutores_bot),
-            buscar_fn=buscar_grupos,
+            buscar_fn=lambda c, t, texto: buscar_grupos(c, t, texto, calientes=cal),
             comandos=comandos,
         )
     finally:

@@ -53,6 +53,14 @@ class EstadoYBusquedaTests(unittest.TestCase):
 
         self.assertTrue(resultado["lectura_parcial"])
 
+    def test_busqueda_reutiliza_playwright_del_bot(self):
+        tutor = {"kt_id": "tutor-1"}
+        caliente = types.SimpleNamespace(p="playwright-existente")
+        with patch("avisador.leer_todos_los_cursos", return_value=({"Roblox": LINEAS_GRUPO}, [])) as lectura:
+            avisador.buscar_grupos({}, tutor, "/grupos sábado 8-12", calientes=caliente)
+
+        self.assertEqual(lectura.call_args.kwargs["p"], "playwright-existente")
+
 
 if __name__ == "__main__":
     unittest.main()
