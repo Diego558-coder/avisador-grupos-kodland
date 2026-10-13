@@ -852,24 +852,14 @@ def revisar(cfg, estado, tutor):
         if enviado:
             heartbeat = ahora
 
-    # Si un curso da 0 grupos, puede ser real o solo la app cargando lento en esa
-    # revisión (ya pasó: "Unity" se leyó vacío una vez y en la siguiente reaparecieron
-    # sus 28 grupos, todos avisados como "nuevos" otra vez). Por eso una lectura vacía
-    # sola no borra la memoria: hacen falta 2 seguidas para darla por real.
-    vacios = estado.get("vacios", {})
+    # Una respuesta vacía solo llega aquí después de que la interfaz terminó de
+    # cargar y mostró explícitamente que no hay grupos. No conservar el resultado
+    # anterior: hacerlo convertía /grupos en una lista obsoleta durante otra vuelta.
     for curso, lineas in actual.items():
-        if lineas or curso not in anterior or not anterior[curso]:
-            anterior[curso] = quitar_lineas(lineas, pendientes.get(curso, []))
-            vacios.pop(curso, None)
-        elif vacios.get(curso, 0) >= 1:
-            anterior[curso] = []
-            vacios.pop(curso, None)
-        else:
-            vacios[curso] = vacios.get(curso, 0) + 1
-            log(f"  {curso}: dio 0 grupos; se confirma en la próxima revisión antes de olvidar los anteriores.")
+        anterior[curso] = quitar_lineas(lineas, pendientes.get(curso, []))
     # Sin "ultima_revision": así estado.json solo cambia cuando hay algo nuevo
     # y el repositorio no se llena de commits cada 5 minutos.
-    estado = {"cursos": anterior, "vacios": vacios, "ultimo_heartbeat": heartbeat.isoformat(timespec="seconds")}
+    estado = {"cursos": anterior, "vacios": {}, "ultimo_heartbeat": heartbeat.isoformat(timespec="seconds")}
     guardar_json(ruta, estado)
     return estado
 
@@ -1429,12 +1419,23 @@ def estado_actual(tutor):
 
 
 def buscar_grupos(cfg, tutor, texto):
-    """Filtra los grupos actuales por día y hora (ver filtro.py) para el bot de Telegram."""
+    """Consulta la app en vivo y filtra por día y hora para el bot de Telegram.
+
+    No usa ``estado.json``: ese archivo es una línea base para detectar novedades
+    y puede quedar unos minutos atrás de la app.
+    """
     filtros = filtro.parsear_consulta(texto)
     if not filtros:
         return {"error": "Dime qué días y horas puedes. Ejemplo: /grupos sábado y domingo de 8 a 12\nEscribe /ayuda para ver más."}
-    grupos = [(curso, g)
-              for curso, lineas in estado_actual(tutor).get("cursos", {}).items()
+    try:
+        actual, errores_lectura = leer_todos_los_cursos(
+            cfg, kt_id=tutor.get("kt_id"), tutor=tutor, tolerar_errores_carga=True,
+        )
+    except Exception as e:
+        detalle = _error_sin_credenciales(e, tutor, cfg)
+        log(f"Error en búsqueda en vivo: {detalle}")
+        return {"error": "No pude consultar la app ahora. Intenta de nuevo en un momento."}
+    grupos = [(curso, g) for curso, lineas in actual.items()
               for g in parsear_grupos(lineas) if g["id"]]
     si, sin_hora = filtro.buscar(grupos, filtros)
     if not si and all(not f.dias and f.ini is None for f in filtros):
@@ -1444,6 +1445,7 @@ def buscar_grupos(cfg, tutor, texto):
         "resumen": filtro.explicar(filtros),
         "total": len(grupos),
         "sin_hora": len(sin_hora),
+        "lectura_parcial": bool(errores_lectura),
         "grupos": [(curso, formatear_grupo(g), g["id"]) for curso, g in si],
     }
 

@@ -212,15 +212,16 @@ def _buscar(cfg, chat, tutor, texto, buscar_fn):
         return enviar(token, chat, "🔎 No entendí", r["error"], silencioso=True)
     grupos, extra = r["grupos"], r.get("sin_hora", 0)
     nota = f"\n({extra} grupos no traen hora y no se pudieron comparar: míralos en la app.)" if extra else ""
+    parcial = "\n⚠️ Algunas consultas no cargaron; los resultados mostrados sí son de la app en este momento." if r.get("lectura_parcial") else ""
     if not grupos:
         return enviar(token, chat, f"🔎 {r['resumen']}",
                       f"No encontré grupos con ese horario, de {r['total']} que hay ahora. "
-                      f"Prueba con más días o una ventana más amplia.{nota}", silencioso=True)
+                      f"Prueba con más días o una ventana más amplia.{nota}{parcial}", silencioso=True)
     mostrar = grupos[:MAX_RESULTADOS]
     enviar(token, chat, f"🔎 {r['resumen']}",
            f"{len(grupos)} grupos caben en ese horario (de {r['total']} que hay ahora)."
            + (f" Te muestro los primeros {len(mostrar)}: acota con un curso o una franja." if len(grupos) > len(mostrar) else "")
-           + nota, silencioso=True)
+           + nota + parcial, silencioso=True)
     for curso, texto_grupo, gid in mostrar:
         enviar(token, chat, f"📋 {curso}", texto_grupo,
                botones_grupo(tutor["pos"], curso, gid, cfg["url_app"]), silencioso=True)
