@@ -585,10 +585,6 @@
     "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
     "Code & Game lvl 2": [
-      "[PRM_COL14207_VI-16][2060] Code & Game lvl 2 (PRM_COL14207_VI-16) · 90 min",
-      "🕐 Viernes 16h COL (18h ARG)",
-      "📅 2026-10-16 16:00",
-      "🏷️ PRM_COL14207_VI-16",
       "[PRM_COL14480_MA-17][2060] Code & Game lvl 2 (PRM_COL14480_MA-17) · 90 min",
       "🕐 Martes 17h COL (19h ARG)",
       "📅 2026-10-20 17:00",
@@ -627,10 +623,6 @@
       "🏷️ PRM_COL14506_JU-17"
     ],
     "Code & Game: LVL3": [
-      "[PRM_COL14226_VI-18][2059] Code & Game: LVL3 (PRM_COL14226_VI-18) · 90 min",
-      "🕐 Viernes 18h COL (20h ARG)",
-      "📅 2026-10-16 18:00",
-      "🏷️ PRM_COL14226_VI-18",
       "[COL14241_SA-10][2059] Code & Game: LVL3 (COL14241_SA-10) · 90 min",
       "🕐 Sábado 10h COL (12h ARG)",
       "📅 2026-10-17 10:00",
@@ -818,5 +810,5 @@
     ]
   },
   "vacios": {},
-  "ultimo_heartbeat": "2026-10-13T15:05:35+00:00"
+  "ultimo_heartbeat": "2026-10-14T04:43:25+00:00"
 }
