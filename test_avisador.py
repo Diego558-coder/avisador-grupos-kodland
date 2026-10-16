@@ -36,30 +36,42 @@ class EstadoYBusquedaTests(unittest.TestCase):
         self.assertEqual(resultado["cursos"]["Roblox"], [])
         self.assertEqual(resultado["vacios"], {})
 
-    def test_busqueda_consulta_la_app_y_no_el_estado_anterior(self):
+    def test_revisar_descarta_curso_que_desaparece_varias_revisiones(self):
+        estado = {"cursos": {"Roblox": LINEAS_GRUPO, "Unity": LINEAS_GRUPO}, "vacios": {}}
+        tutor = {"pos": 1, "telegram_chat": "123"}
+        cfg = {"heartbeat_horas": 12}
+
+        # Primera revisión sin "Unity": se conserva por el margen anti-fallo.
+        with patch("avisador.leer_todos_los_cursos", return_value=({"Roblox": LINEAS_GRUPO}, [])), \
+             patch("avisador.guardar_json"), patch("avisador.avisar"), patch("avisador.ruta_estado"):
+            resultado = avisador.revisar(cfg, estado, tutor)
+        self.assertIn("Unity", resultado["cursos"])
+        self.assertEqual(resultado["faltas"].get("Unity"), 1)
+
+        # Segunda revisión seguida sin "Unity": se descarta del estado.
+        with patch("avisador.leer_todos_los_cursos", return_value=({"Roblox": LINEAS_GRUPO}, [])), \
+             patch("avisador.guardar_json"), patch("avisador.avisar"), patch("avisador.ruta_estado"):
+            resultado2 = avisador.revisar(cfg, resultado, tutor)
+        self.assertNotIn("Unity", resultado2["cursos"])
+        self.assertNotIn("Unity", resultado2["faltas"])
+
+    def test_busqueda_usa_la_ultima_revision_guardada(self):
         tutor = {"kt_id": "tutor-1"}
-        with patch("avisador.leer_todos_los_cursos", return_value=({"Roblox": LINEAS_GRUPO}, [])) as lectura, \
-             patch("avisador.estado_actual", side_effect=AssertionError("No debe leer estado.json")):
+        with patch("avisador.estado_actual", return_value={"cursos": {"Roblox": LINEAS_GRUPO}}) as estado:
             resultado = avisador.buscar_grupos({}, tutor, "/grupos sábado 8-12")
 
-        lectura.assert_called_once()
+        estado.assert_called_once()
         self.assertEqual(resultado["total"], 1)
         self.assertEqual([grupo[2] for grupo in resultado["grupos"]], ["COL123_SA-10"])
 
-    def test_busqueda_informa_si_la_lectura_fue_parcial(self):
+    def test_busqueda_no_reescanea_la_app_en_vivo(self):
         tutor = {"kt_id": "tutor-1"}
-        with patch("avisador.leer_todos_los_cursos", return_value=({"Roblox": LINEAS_GRUPO}, ["Unity: TimeoutError"])):
+        with patch("avisador.estado_actual", return_value={"cursos": {"Roblox": LINEAS_GRUPO}}), \
+             patch("avisador.leer_todos_los_cursos", side_effect=AssertionError("No debe escanear en vivo")):
             resultado = avisador.buscar_grupos({}, tutor, "/grupos sábado 8-12")
 
-        self.assertTrue(resultado["lectura_parcial"])
-
-    def test_busqueda_reutiliza_playwright_del_bot(self):
-        tutor = {"kt_id": "tutor-1"}
-        caliente = types.SimpleNamespace(p="playwright-existente")
-        with patch("avisador.leer_todos_los_cursos", return_value=({"Roblox": LINEAS_GRUPO}, [])) as lectura:
-            avisador.buscar_grupos({}, tutor, "/grupos sábado 8-12", calientes=caliente)
-
-        self.assertEqual(lectura.call_args.kwargs["p"], "playwright-existente")
+        self.assertEqual(resultado["total"], 1)
+        self.assertFalse(resultado["lectura_parcial"])
 
     def test_bot_empieza_a_escuchar_sin_abrir_kodland(self):
         args = types.SimpleNamespace(minutos=330)

@@ -761,6 +761,7 @@ def formatear_grupos(grupos):
 
 
 MAX_AVISOS_POR_CURSO = 30  # más grupos nuevos de un curso se resumen en un solo aviso
+MARGEN_FALTAS = 2  # revisiones seguidas sin ver un curso antes de descartarlo del estado
 
 
 def avisar_cambios(cfg, tutor, curso, lineas):
@@ -820,6 +821,7 @@ def revisar(cfg, estado, tutor):
         return estado
 
     anterior = estado.get("cursos", {})
+    faltas = estado.get("faltas", {})
     ahora = datetime.now(timezone.utc)
     pendientes = {}  # curso -> líneas que no se pudieron avisar (se reintentan)
     if not anterior:
@@ -852,14 +854,28 @@ def revisar(cfg, estado, tutor):
         if enviado:
             heartbeat = ahora
 
-    # Una respuesta vacía solo llega aquí después de que la interfaz terminó de
-    # cargar y mostró explícitamente que no hay grupos. No conservar el resultado
-    # anterior: hacerlo convertía /grupos en una lista obsoleta durante otra vuelta.
+    # Reconstruir el estado SOLO con lo que la app muestra ahora. Un curso que
+    # desaparece se conserva un par de revisiones (por si fue un fallo temporal de
+    # carga) y solo se descarta si sigue sin aparecer: así no se re-avisa su
+    # contenido por un error puntual, pero tampoco se acumula información vieja.
+    cursos_actualizados = {}
     for curso, lineas in actual.items():
-        anterior[curso] = quitar_lineas(lineas, pendientes.get(curso, []))
+        cursos_actualizados[curso] = quitar_lineas(lineas, pendientes.get(curso, []))
+        faltas.pop(curso, None)
+    for curso in list(anterior):
+        if curso in cursos_actualizados:
+            continue
+        n = faltas.get(curso, 0) + 1
+        if n >= MARGEN_FALTAS:
+            faltas.pop(curso, None)
+            log(f"Curso '{curso}' sin aparecer en {n} revisiones seguidas: se descarta del estado.")
+            continue
+        faltas[curso] = n
+        cursos_actualizados[curso] = anterior[curso]  # se conserva para no re-avisar
     # Sin "ultima_revision": así estado.json solo cambia cuando hay algo nuevo
     # y el repositorio no se llena de commits cada 5 minutos.
-    estado = {"cursos": anterior, "vacios": {}, "ultimo_heartbeat": heartbeat.isoformat(timespec="seconds")}
+    estado = {"cursos": cursos_actualizados, "vacios": {}, "faltas": faltas,
+              "ultimo_heartbeat": heartbeat.isoformat(timespec="seconds")}
     guardar_json(ruta, estado)
     return estado
 
@@ -1348,24 +1364,33 @@ def modo_postular(cfg, args):
     sys.exit(0 if ok else 1)
 
 
-def enviar_todos(cfg, tutor, solo_contar=False, calientes=None, modalidad_objetivo=None):
-    """Manda los grupos disponibles de las modalidades solicitadas. No toca
-    el estado del vigilante, así que no afecta a los avisos futuros."""
-    p = calientes.p if calientes is not None else None
-    actual, errores_lectura = leer_todos_los_cursos(
-        cfg,
-        kt_id=tutor.get("kt_id"),
-        p=p,
-        tutor=tutor,
-        modalidad_objetivo=modalidad_objetivo,
-        tolerar_errores_carga=True,
-    )
+def enviar_todos(cfg, tutor, solo_contar=False, calientes=None, modalidad_objetivo=None,
+                 desde_estado=False, limite=None):
+    """Manda los grupos disponibles. No toca el estado del vigilante, así que no
+    afecta a los avisos futuros. `desde_estado` lee la última revisión guardada
+    (rápido, sin tocar la app); `limite` recorta los mensajes de grupo para no
+    inundar el chat (se muestra un resumen completo igualmente)."""
+    if desde_estado:
+        actual = estado_actual(tutor).get("cursos", {})
+        errores_lectura = []
+    else:
+        p = calientes.p if calientes is not None else None
+        actual, errores_lectura = leer_todos_los_cursos(
+            cfg,
+            kt_id=tutor.get("kt_id"),
+            p=p,
+            tutor=tutor,
+            modalidad_objetivo=modalidad_objetivo,
+            tolerar_errores_carga=True,
+        )
     lista, vistos = [], set()
     for curso, lineas in actual.items():
         for g in parsear_grupos(lineas):
             if g["id"] and (curso, g["id"]) not in vistos:
                 vistos.add((curso, g["id"]))
                 lista.append((curso, g))
+    # Primero lo que empieza antes (más útil para postularse a tiempo).
+    lista.sort(key=lambda cg: (filtro._horario(cg[1]) or (9, 0, 0))[:2])
     por_curso = Counter(c for c, _ in lista)
     log(f"Grupos disponibles: {len(lista)}")
     for curso, n in por_curso.items():
@@ -1373,8 +1398,9 @@ def enviar_todos(cfg, tutor, solo_contar=False, calientes=None, modalidad_objeti
     if solo_contar:
         return len(lista)
 
+    mostrar = lista if limite is None else lista[:limite]
     enviados = 0
-    for curso, g in lista:
+    for curso, g in mostrar:
         if avisar(cfg, tutor, f"📋 {curso}", formatear_grupo(g), prioridad=3, grupo=(curso, g["id"])):
             enviados += 1
         time.sleep(1.2)  # Telegram admite ~1 mensaje por segundo en un mismo chat
@@ -1383,10 +1409,14 @@ def enviar_todos(cfg, tutor, solo_contar=False, calientes=None, modalidad_objeti
     nota_errores = ""
     if errores_lectura:
         nota_errores = f"\n\n⚠️ {len(errores_lectura)} consulta(s) no respondieron a tiempo por lentitud de la app."
+    nota_limite = ""
+    if limite is not None and len(lista) > limite:
+        nota_limite = (f"\n\nTe muestro los {len(mostrar)} primeros (de {len(lista)}). "
+                       "Para afinar por día y hora usa /grupos.")
     avisar(cfg, tutor, titulo,
               f"{enviados} de {len(lista)} {tipo} ahora.\n" +
               "\n".join(f"• {c}: {n}" for c, n in por_curso.items()) +
-              nota_errores,
+              nota_limite + nota_errores,
               prioridad=3)
     return len(lista)
 
@@ -1419,26 +1449,15 @@ def estado_actual(tutor):
 
 
 def buscar_grupos(cfg, tutor, texto, calientes=None):
-    """Consulta la app en vivo y filtra por día y hora para el bot de Telegram.
-
-    No usa ``estado.json``: ese archivo es una línea base para detectar novedades
-    y puede quedar unos minutos atrás de la app.
-    """
+    """Filtra los grupos por día y hora usando la última revisión guardada por el
+    vigilante (se refresca cada pocos minutos), así responde al instante. Para
+    comparar la app EN VIVO con lo guardado usa /nuevos."""
     filtros = filtro.parsear_consulta(texto)
     if not filtros:
         return {"error": "Dime qué días y horas puedes. Ejemplo: /grupos sábado y domingo de 8 a 12\nEscribe /ayuda para ver más."}
-    try:
-        actual, errores_lectura = leer_todos_los_cursos(
-            cfg,
-            kt_id=tutor.get("kt_id"),
-            p=calientes.p if calientes is not None else None,
-            tutor=tutor,
-            tolerar_errores_carga=True,
-        )
-    except Exception as e:
-        detalle = _error_sin_credenciales(e, tutor, cfg)
-        log(f"Error en búsqueda en vivo: {detalle}")
-        return {"error": "No pude consultar la app ahora. Intenta de nuevo en un momento."}
+    actual = estado_actual(tutor).get("cursos", {})
+    if not actual:
+        return {"error": "Todavía no hay grupos guardados. El vigilante debe completar primero un escaneo (unos minutos) y luego podrás filtrar."}
     grupos = [(curso, g) for curso, lineas in actual.items()
               for g in parsear_grupos(lineas) if g["id"]]
     si, sin_hora = filtro.buscar(grupos, filtros)
@@ -1449,7 +1468,7 @@ def buscar_grupos(cfg, tutor, texto, calientes=None):
         "resumen": filtro.explicar(filtros),
         "total": len(grupos),
         "sin_hora": len(sin_hora),
-        "lectura_parcial": bool(errores_lectura),
+        "lectura_parcial": False,
         "grupos": [(curso, formatear_grupo(g), g["id"]) for curso, g in si],
     }
 
@@ -1464,9 +1483,14 @@ def comando_mispostulaciones(cfg, tutor, calientes):
 
 
 def comando_todos(cfg, tutor, calientes):
-    avisar(cfg, tutor, "🔎 Buscando todos los grupos…", "Esto puede tardar uno o dos minutos.", prioridad=2)
+    avisar(cfg, tutor, "🔎 Buscando todos los grupos…", "Esto tarda unos segundos.", prioridad=2)
     try:
-        enviar_todos(cfg, tutor, calientes=calientes)
+        if not estado_actual(tutor).get("cursos"):
+            avisar(cfg, tutor, "⚠️ No hay datos todavía",
+                   "El vigilante aún no guarda grupos. Espera a que complete un escaneo (unos minutos) y vuelve a intentar.",
+                   prioridad=3)
+            return
+        enviar_todos(cfg, tutor, calientes=calientes, desde_estado=True, limite=20)
     except Exception as e:
         detalle = _error_sin_credenciales(e, tutor, cfg)
         log(f"Error en /todos: {detalle}")
@@ -1562,7 +1586,7 @@ def comando_nuevos(cfg, tutor, calientes):
 def comando_individuales(cfg, tutor, calientes):
     avisar(cfg, tutor, "🔎 Buscando grupos Individual (1-1)…", "Esto puede tardar uno o dos minutos.", prioridad=2)
     try:
-        enviar_todos(cfg, tutor, calientes=calientes, modalidad_objetivo="individual")
+        enviar_todos(cfg, tutor, calientes=calientes, modalidad_objetivo="individual", limite=20)
     except Exception as e:
         detalle = _error_sin_credenciales(e, tutor, cfg)
         log(f"Error en /individuales: {detalle}")

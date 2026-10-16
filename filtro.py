@@ -119,7 +119,11 @@ def parsear_consulta(texto):
 
 def _horario(g):
     """(día 0-6, minuto de inicio, duración) de un grupo, o None si no trae hora."""
-    m = re.search(r"([A-Za-zÁÉÍÓÚáéíóúñÑ]+)\s+(\d{1,2}):(\d{2})\s*COL", g.get("horario") or "")
+    # Acepta "Martes 16:00 COL" (app antigua) y "Miércoles 18h COL" (app nueva).
+    m = re.search(
+        r"([A-Za-zÁÉÍÓÚáéíóúñÑ]+)\s+(\d{1,2})(?::(\d{2}))?\s*h?\s*COL",
+        g.get("horario") or "",
+    )
     if not m:
         return None
     dia = _ALIAS.get(_norm(m.group(1)))
@@ -130,7 +134,7 @@ def _horario(g):
         cabecera = (g.get("lineas") or [""])[0]
         d = re.search(r"(\d+)\s*min", cabecera)
         dur = int(d.group(1)) if d else 90
-    return dia, int(m.group(2)) * 60 + int(m.group(3)), dur
+    return dia, int(m.group(2)) * 60 + int(m.group(3) or 0), dur
 
 
 def coincide(g, curso, f):
