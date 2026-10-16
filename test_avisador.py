@@ -40,20 +40,24 @@ class EstadoYBusquedaTests(unittest.TestCase):
         estado = {"cursos": {"Roblox": LINEAS_GRUPO, "Unity": LINEAS_GRUPO}, "vacios": {}}
         tutor = {"pos": 1, "telegram_chat": "123"}
         cfg = {"heartbeat_horas": 12}
+        contextos = (patch("avisador.leer_todos_los_cursos",
+                           return_value=({"Roblox": LINEAS_GRUPO}, [])),
+                     patch("avisador.guardar_json"), patch("avisador.avisar"),
+                     patch("avisador.ruta_estado"))
 
-        # Primera revisión sin "Unity": se conserva por el margen anti-fallo.
-        with patch("avisador.leer_todos_los_cursos", return_value=({"Roblox": LINEAS_GRUPO}, [])), \
-             patch("avisador.guardar_json"), patch("avisador.avisar"), patch("avisador.ruta_estado"):
-            resultado = avisador.revisar(cfg, estado, tutor)
-        self.assertIn("Unity", resultado["cursos"])
-        self.assertEqual(resultado["faltas"].get("Unity"), 1)
+        # 1ª y 2ª revisión sin "Unity": se conserva por el margen anti-fallo.
+        actual = estado
+        for esperado in (1, 2):
+            with contextos[0], contextos[1], contextos[2], contextos[3]:
+                actual = avisador.revisar(cfg, actual, tutor)
+            self.assertIn("Unity", actual["cursos"])
+            self.assertEqual(actual["faltas"].get("Unity"), esperado)
 
-        # Segunda revisión seguida sin "Unity": se descarta del estado.
-        with patch("avisador.leer_todos_los_cursos", return_value=({"Roblox": LINEAS_GRUPO}, [])), \
-             patch("avisador.guardar_json"), patch("avisador.avisar"), patch("avisador.ruta_estado"):
-            resultado2 = avisador.revisar(cfg, resultado, tutor)
-        self.assertNotIn("Unity", resultado2["cursos"])
-        self.assertNotIn("Unity", resultado2["faltas"])
+        # 3ª revisión seguida sin "Unity": se descarta del estado.
+        with contextos[0], contextos[1], contextos[2], contextos[3]:
+            actual = avisador.revisar(cfg, actual, tutor)
+        self.assertNotIn("Unity", actual["cursos"])
+        self.assertNotIn("Unity", actual["faltas"])
 
     def test_busqueda_usa_la_ultima_revision_guardada(self):
         tutor = {"kt_id": "tutor-1"}

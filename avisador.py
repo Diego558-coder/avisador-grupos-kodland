@@ -761,7 +761,7 @@ def formatear_grupos(grupos):
 
 
 MAX_AVISOS_POR_CURSO = 30  # más grupos nuevos de un curso se resumen en un solo aviso
-MARGEN_FALTAS = 2  # revisiones seguidas sin ver un curso antes de descartarlo del estado
+MARGEN_FALTAS = 3  # revisiones seguidas sin ver un curso antes de descartarlo del estado
 
 
 def avisar_cambios(cfg, tutor, curso, lineas):
@@ -1431,21 +1431,35 @@ def modo_listar(cfg, args):
     enviar_todos(cfg, tutor, solo_contar=args.contar)
 
 
-def estado_actual(tutor):
+_CACHE_ESTADO = {}  # nombre de archivo -> (momento, datos): evita re-descargar a cada toque
+
+
+def estado_actual(tutor, frescura_seg=45):
     """Los grupos que el vigilante vio en su última revisión. En GitHub se lee la
     versión más reciente del repositorio (el vigilante la actualiza sola); si no se
-    puede, se usa la copia local."""
+    puede, se usa la copia local. El resultado se cachea unos segundos para que
+    varias consultas seguidas respondan al instante."""
     ruta = ruta_estado(tutor)
+    clave = ruta.name
+    ahora = time.time()
+    previo = _CACHE_ESTADO.get(clave)
+    if previo and ahora - previo[0] < frescura_seg:
+        return previo[1]
+
+    datos = None
     repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
     if repo:
         try:
-            url = f"https://raw.githubusercontent.com/{repo}/main/{ruta.name}"
+            url = f"https://raw.githubusercontent.com/{repo}/main/{clave}"
             datos = json.loads(urllib.request.urlopen(url, timeout=10).read().decode("utf-8"))
-            if datos.get("cursos"):
-                return datos
+            if not datos.get("cursos"):
+                datos = None
         except Exception:
-            pass
-    return cargar_json(ruta, {})
+            datos = None
+    if datos is None:
+        datos = cargar_json(ruta, {})
+    _CACHE_ESTADO[clave] = (ahora, datos)
+    return datos
 
 
 def buscar_grupos(cfg, tutor, texto, calientes=None):

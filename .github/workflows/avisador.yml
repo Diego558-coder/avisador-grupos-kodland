@@ -61,7 +61,7 @@ jobs:
           TUTORES: ${{ secrets.TUTORES }}
         run: python avisador.py --probar
 
-      - name: Vigilar cursos (~5,5 horas, revisando cada ~5 min)
+      - name: Vigilar cursos (~5,5 horas, revisando cada ~3-4 min)
         env:
           URL_APP: ${{ secrets.URL_APP }}
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
@@ -81,7 +81,7 @@ jobs:
             fi
             # Si Telegram falla, cortamos para que la ejecución quede en rojo y se note
             if [ $FALLO = 1 ]; then exit 1; fi
-            sleep 180
+            sleep 60
           done
 
       - name: Lanzar la siguiente ejecución
