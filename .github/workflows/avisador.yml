@@ -15,7 +15,10 @@ permissions:
 
 concurrency:
   group: avisador-kodland
-  cancel-in-progress: false
+  # true = una ejecución nueva cancela la anterior en vez de encolarse detrás.
+  # Así, al re-ejecutar a mano, el código nuevo entra al instante y no se acumulan
+  # ejecuciones en espera (el cron por hora y el encadenado mantienen vivo el bot).
+  cancel-in-progress: true
 
 jobs:
   revisar:
