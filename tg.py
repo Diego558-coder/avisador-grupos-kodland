@@ -116,18 +116,6 @@ def _base(texto):
     return texto[:corte]
 
 
-def _curso_del_mensaje(texto, grupo):
-    prefijos_no_curso = ("🕐", "⏱", "📅", "🏷", "📚", "📋", "🔗", "✅", "❌")
-    for linea in (texto or "").splitlines()[1:]:
-        candidata = linea.strip()
-        if not candidata or candidata == grupo or candidata.startswith(prefijos_no_curso):
-            continue
-        if candidata.startswith("[") or ("_" in candidata and " " not in candidata):
-            continue
-        return candidata
-    return None
-
-
 def _atender_toque(cfg, cq, chats, postular_fn, log):
     token = cfg["telegram_token"]
 
@@ -151,9 +139,9 @@ def _atender_toque(cfg, cq, chats, postular_fn, log):
 
     texto, entidades = mensaje.get("text") or "", mensaje.get("entities")
     base, estado = _base(texto), _estado(texto)
-    curso_visible = _curso_del_mensaje(base, grupo)
-    if curso_visible:
-        curso = curso_visible
+    # El curso llega completo en callback_data (si fuera demasiado largo,
+    # botones_grupo no crea el botón), así que se usa tal cual sin intentar
+    # "adivinarlo" del texto del mensaje, que a veces traía un curso equivocado.
     teclado_original = botones_grupo(pos, curso, grupo, cfg["url_app"])
 
     def editar(nuevo, teclado):
