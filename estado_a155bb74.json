@@ -184,6 +184,7 @@
       "📅 2026-11-05 20:00",
       "🏷️ COL14117_JU-20"
     ],
+    "Minecraft": [],
     "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
     "Code & Game lvl 2": [
@@ -385,12 +386,11 @@
       "🕐 Sábado 11h COL (13h ARG)",
       "📅 2026-11-07 11:00",
       "🏷️ COL14470_SA-11"
-    ],
-    "Minecraft": []
+    ]
   },
   "vacios": {},
   "faltas": {
-    "Minecraft": 1
+    "Minecraft Craftforge Intermediate": 1
   },
   "ultimo_heartbeat": "2026-10-18T05:32:47+00:00"
 }
