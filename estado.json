@@ -1,6 +1,44 @@
 {
   "cursos": {
-    "Unity Game Developer": [],
+    "Python LVL1": [],
+    "Unity Game Developer": [
+      "[PRM_COL14300_LU-12][1209] Unity Game Developer (PRM_COL14300_LU-12) · 90 min",
+      "🕐 Lunes 12h COL (14h ARG)",
+      "📅 2026-10-19 12:00",
+      "🏷️ PRM_COL14300_LU-12",
+      "[COL14346_MA-18][1209] Unity Game Developer (COL14346_MA-18) · 90 min",
+      "🕐 Martes 18h COL (20h ARG)",
+      "📅 2026-10-20 18:00",
+      "🏷️ COL14346_MA-18",
+      "[COL14544_MA-18][1209] Unity Game Developer (COL14544_MA-18) · 90 min",
+      "🕐 Martes 18h COL (20h ARG)",
+      "📅 2026-10-20 18:00",
+      "🏷️ COL14544_MA-18",
+      "[PRM_COL14508_JU-16][1209] Unity Game Developer (PRM_COL14508_JU-16) · 90 min",
+      "🕐 Jueves 16h COL (18h ARG)",
+      "📅 2026-10-22 16:00",
+      "🏷️ PRM_COL14508_JU-16",
+      "[PRM_COL14316_JU-18][1209] Unity Game Developer (PRM_COL14316_JU-18) · 90 min",
+      "🕐 Jueves 18h COL (20h ARG)",
+      "📅 2026-10-22 18:00",
+      "🏷️ PRM_COL14316_JU-18",
+      "[PRM_COL14315_SA-9][1209] Unity Game Developer (PRM_COL14315_SA-9) · 90 min",
+      "🕐 Sábado 9h COL (11h ARG)",
+      "📅 2026-10-24 9:00",
+      "🏷️ PRM_COL14315_SA-9",
+      "[COL14383_DO-15][1209] Unity Game Developer (COL14383_DO-15) · 90 min",
+      "🕐 Domingo 15h COL (17h ARG)",
+      "📅 2026-11-01 15:00",
+      "🏷️ COL14383_DO-15",
+      "[COL14536_LU-17][1209] Unity Game Developer (COL14536_LU-17) · 90 min",
+      "🕐 Lunes 17h COL (19h ARG)",
+      "📅 2026-11-02 17:00",
+      "🏷️ COL14536_LU-17",
+      "[COL14460_JU-19][1209] Unity Game Developer (COL14460_JU-19) · 90 min",
+      "🕐 Jueves 19h COL (21h ARG)",
+      "📅 2026-11-05 19:00",
+      "🏷️ COL14460_JU-19"
+    ],
     "Roblox Game Developer": [
       "[PRM_COL13696_DO-13][1210] Roblox Game Developer (PRM_COL13696_DO-13) · 90 min",
       "🕐 Domingo 13h COL (15h ARG)",
@@ -148,44 +186,6 @@
       "🏷️ COL14245_JU-18"
     ],
     "Python LVL2": [
-      "[PRM_COL14300_LU-12][1209] Unity Game Developer (PRM_COL14300_LU-12) · 90 min",
-      "🕐 Lunes 12h COL (14h ARG)",
-      "📅 2026-10-19 12:00",
-      "🏷️ PRM_COL14300_LU-12",
-      "[COL14346_MA-18][1209] Unity Game Developer (COL14346_MA-18) · 90 min",
-      "🕐 Martes 18h COL (20h ARG)",
-      "📅 2026-10-20 18:00",
-      "🏷️ COL14346_MA-18",
-      "[COL14544_MA-18][1209] Unity Game Developer (COL14544_MA-18) · 90 min",
-      "🕐 Martes 18h COL (20h ARG)",
-      "📅 2026-10-20 18:00",
-      "🏷️ COL14544_MA-18",
-      "[PRM_COL14508_JU-16][1209] Unity Game Developer (PRM_COL14508_JU-16) · 90 min",
-      "🕐 Jueves 16h COL (18h ARG)",
-      "📅 2026-10-22 16:00",
-      "🏷️ PRM_COL14508_JU-16",
-      "[PRM_COL14316_JU-18][1209] Unity Game Developer (PRM_COL14316_JU-18) · 90 min",
-      "🕐 Jueves 18h COL (20h ARG)",
-      "📅 2026-10-22 18:00",
-      "🏷️ PRM_COL14316_JU-18",
-      "[PRM_COL14315_SA-9][1209] Unity Game Developer (PRM_COL14315_SA-9) · 90 min",
-      "🕐 Sábado 9h COL (11h ARG)",
-      "📅 2026-10-24 9:00",
-      "🏷️ PRM_COL14315_SA-9",
-      "[COL14383_DO-15][1209] Unity Game Developer (COL14383_DO-15) · 90 min",
-      "🕐 Domingo 15h COL (17h ARG)",
-      "📅 2026-11-01 15:00",
-      "🏷️ COL14383_DO-15",
-      "[COL14536_LU-17][1209] Unity Game Developer (COL14536_LU-17) · 90 min",
-      "🕐 Lunes 17h COL (19h ARG)",
-      "📅 2026-11-02 17:00",
-      "🏷️ COL14536_LU-17",
-      "[COL14460_JU-19][1209] Unity Game Developer (COL14460_JU-19) · 90 min",
-      "🕐 Jueves 19h COL (21h ARG)",
-      "📅 2026-11-05 19:00",
-      "🏷️ COL14460_JU-19"
-    ],
-    "Web Design": [
       "[PRM_COL14113_MA-17][1218] Python LVL2 (PRM_COL14113_MA-17) · 90 min",
       "🕐 Martes 17h COL (19h ARG)",
       "📅 2026-10-20 17:00",
@@ -215,7 +215,7 @@
       "📅 2027-01-03 9:00",
       "🏷️ PRM_COL14474_DO-9"
     ],
-    "Roblox Game Developer Lvl 2": [
+    "Web Design": [
       "[COL14349_DO-11][1220] Web Design (COL14349_DO-11) · 90 min",
       "🕐 Domingo 11h COL (13h ARG)",
       "📅 2026-10-25 11:00",
@@ -241,7 +241,7 @@
       "📅 2026-11-05 18:00",
       "🏷️ PRM_COL14528_JU-18"
     ],
-    "Minecraft": [
+    "Roblox Game Developer Lvl 2": [
       "[PRM_COL_14405_MA-18][1442] Roblox Game Developer Lvl 2 (PRM_COL_14405_MA-18) · 90 min",
       "🕐 Martes 18h COL (20h ARG)",
       "📅 2026-10-20 18:00",
@@ -263,10 +263,10 @@
       "📅 2026-11-05 20:00",
       "🏷️ COL14117_JU-20"
     ],
+    "Minecraft": [],
     "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
-    "Code & Game lvl 2": [],
-    "Code & Game: LVL3": [
+    "Code & Game lvl 2": [
       "[PRM_COL14480_MA-17][2060] Code & Game lvl 2 (PRM_COL14480_MA-17) · 90 min",
       "🕐 Martes 17h COL (19h ARG)",
       "📅 2026-10-20 17:00",
@@ -300,7 +300,7 @@
       "📅 2026-10-29 17:00",
       "🏷️ PRM_COL14506_JU-17"
     ],
-    "Minecraft Craftforge Beginner": [
+    "Code & Game: LVL3": [
       "[PRM_COL14255_LU-17][2059] Code & Game: LVL3 (PRM_COL14255_LU-17) · 90 min",
       "🕐 Lunes 17h COL (19h ARG)",
       "📅 2026-10-19 17:00",
@@ -350,7 +350,7 @@
       "📅 2026-10-31 10:00",
       "🏷️ PRM_COL14411_SA-10"
     ],
-    "Minecraft Craftforge Intermediate": [
+    "Minecraft Craftforge Beginner": [
       "[COL14246_DO-11][2124] Minecraft Craftforge Beginner (COL14246_DO-11) · 60 min",
       "🕐 Domingo 11h COL (13h ARG)",
       "📅 2026-10-18 11:00",
@@ -404,7 +404,7 @@
       "📅 2026-10-30 16:00",
       "🏷️ COL14468_VI-16"
     ],
-    "Python LVL1": [
+    "Minecraft Craftforge Intermediate": [
       "[COL14260_MI-17][2133] Minecraft Craftforge Intermediate (COL14260_MI-17) · 90 min",
       "🕐 Miércoles 17h COL (19h ARG)",
       "📅 2026-10-21 17:00",
@@ -456,8 +456,6 @@
     ]
   },
   "vacios": {},
-  "faltas": {
-    "Python LVL1": 1
-  },
+  "faltas": {},
   "ultimo_heartbeat": "2026-10-18T17:38:51+00:00"
 }
