@@ -1,6 +1,6 @@
 {
   "cursos": {
-    "Roblox Game Developer Lvl 2": [
+    "Roblox Game Developer": [
       "[COL14495_LU-17][1720] Roblox Game Developer (COL14495_LU-17) · 60 min",
       "🕐 Lunes 17h COL (19h ARG)",
       "📅 2026-10-19 17:00",
@@ -158,7 +158,7 @@
       "📅 2026-11-05 18:00",
       "🏷️ COL14245_JU-18"
     ],
-    "Minecraft": [
+    "Roblox Game Developer Lvl 2": [
       "[PRM_COL_14405_MA-18][1442] Roblox Game Developer Lvl 2 (PRM_COL_14405_MA-18) · 90 min",
       "🕐 Martes 18h COL (20h ARG)",
       "📅 2026-10-20 18:00",
@@ -180,10 +180,10 @@
       "📅 2026-11-05 20:00",
       "🏷️ COL14117_JU-20"
     ],
+    "Minecraft": [],
     "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
-    "Code & Game lvl 2": [],
-    "Code & Game: LVL3": [
+    "Code & Game lvl 2": [
       "[PRM_COL14480_MA-17][2060] Code & Game lvl 2 (PRM_COL14480_MA-17) · 90 min",
       "🕐 Martes 17h COL (19h ARG)",
       "📅 2026-10-20 17:00",
@@ -221,7 +221,7 @@
       "📅 2026-10-29 17:00",
       "🏷️ PRM_COL14506_JU-17"
     ],
-    "Minecraft Craftforge Beginner": [
+    "Code & Game: LVL3": [
       "[COL14284_MA-10][2059] Code & Game: LVL3 (COL14284_MA-10) · 90 min",
       "🕐 Martes 10h COL (12h ARG)",
       "📅 2026-10-20 10:00",
@@ -271,7 +271,7 @@
       "📅 2026-11-04 18:00",
       "🏷️ COL14463_MI-18"
     ],
-    "Minecraft Craftforge Intermediate": [
+    "Minecraft Craftforge Beginner": [
       "[COL14355_MA-19][2124] Minecraft Craftforge Beginner (COL14355_MA-19) · 60 min",
       "🕐 Martes 19h COL (21h ARG)",
       "📅 2026-10-20 19:00",
@@ -325,7 +325,7 @@
       "📅 2026-10-30 16:00",
       "🏷️ COL14468_VI-16"
     ],
-    "Roblox Game Developer": [
+    "Minecraft Craftforge Intermediate": [
       "[COL14260_MI-17][2133] Minecraft Craftforge Intermediate (COL14260_MI-17) · 90 min",
       "🕐 Miércoles 17h COL (19h ARG)",
       "📅 2026-10-21 17:00",
