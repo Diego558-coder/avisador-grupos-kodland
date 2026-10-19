@@ -427,7 +427,7 @@
       "📅 2026-12-01 19:00",
       "🏷️ COL14620_MA-19"
     ],
-    "Minecraft Craftforge Intermediate": [
+    "Minecraft Craftforge Beginner": [
       "[PRM_COL14332_VI-16][2124] Minecraft Craftforge Beginner (PRM_COL14332_VI-16) · 60 min",
       "🕐 Viernes 16h COL (18h ARG)",
       "📅 2026-10-23 16:00",
@@ -457,7 +457,7 @@
       "📅 2026-10-31 13:00",
       "🏷️ COL14625_SA-13"
     ],
-    "Minecraft Craftforge Beginner": [
+    "Minecraft Craftforge Intermediate": [
       "[PRM_COL14332_VI-16][2124] Minecraft Craftforge Beginner (PRM_COL14332_VI-16) · 60 min",
       "🕐 Viernes 16h COL (18h ARG)",
       "📅 2026-10-23 16:00",
@@ -490,7 +490,7 @@
   },
   "vacios": {},
   "faltas": {
-    "Minecraft Craftforge Beginner": 1
+    "Minecraft Craftforge Intermediate": 1
   },
   "ultimo_heartbeat": "2026-10-19T17:44:16+00:00"
 }
