@@ -52,10 +52,6 @@
       "🏷️ COL14616_MI-12"
     ],
     "Python LVL2": [
-      "[PRM_COL14483_JU-15][1720] Roblox Game Developer (PRM_COL14483_JU-15) · 60 min",
-      "🕐 Jueves 15h COL (17h ARG)",
-      "📅 2026-10-22 15:00",
-      "🏷️ PRM_COL14483_JU-15",
       "[PRM_COL14477_VI-17][1210] Roblox Game Developer (PRM_COL14477_VI-17) · 90 min",
       "🕐 Viernes 17h COL (19h ARG)",
       "📅 2026-10-23 17:00",
@@ -178,32 +174,6 @@
       "🏷️ COL14593_LU-18"
     ],
     "Web Design": [
-      "[COL14349_DO-11][1220] Web Design (COL14349_DO-11) · 90 min",
-      "🕐 Domingo 11h COL (13h ARG)",
-      "📅 2026-10-25 11:00",
-      "🏷️ COL14349_DO-11",
-      "[PRM_COL14422_MI-15][1220] Web Design (PRM_COL14422_MI-15) · 90 min",
-      "🕐 Miércoles 15h COL (17h ARG)",
-      "📅 2026-10-28 15:00",
-      "🏷️ PRM_COL14422_MI-15",
-      "[PRM_COL14423_VI-18][1220] Web Design (PRM_COL14423_VI-18) · 90 min",
-      "🕐 Viernes 18h COL (20h ARG)",
-      "📅 2026-10-30 18:00",
-      "🏷️ PRM_COL14423_VI-18",
-      "[PRM_COL14529_DO-11][1220] Web Design (PRM_COL14529_DO-11) · 90 min",
-      "🕐 Domingo 11h COL (13h ARG)",
-      "📅 2026-11-01 11:00",
-      "🏷️ PRM_COL14529_DO-11",
-      "[PRM_COL14421_MA-17][1220] Web Design (PRM_COL14421_MA-17) · 90 min",
-      "🕐 Martes 17h COL (19h ARG)",
-      "📅 2026-11-03 17:00",
-      "🏷️ PRM_COL14421_MA-17",
-      "[PRM_COL14528_JU-18][1220] Web Design (PRM_COL14528_JU-18) · 90 min",
-      "🕐 Jueves 18h COL (20h ARG)",
-      "📅 2026-11-05 18:00",
-      "🏷️ PRM_COL14528_JU-18"
-    ],
-    "Roblox Game Developer Lvl 2": [
       "[PRM_COL14406_DO-9][1218] Python LVL2 (PRM_COL14406_DO-9) · 90 min",
       "🕐 Domingo 9h COL (11h ARG)",
       "📅 2026-10-25 9:00",
@@ -241,8 +211,33 @@
       "📅 2027-01-03 9:00",
       "🏷️ PRM_COL14474_DO-9"
     ],
-    "Minecraft": [],
-    "Minecraft lv 2": [
+    "Roblox Game Developer Lvl 2": [
+      "[COL14349_DO-11][1220] Web Design (COL14349_DO-11) · 90 min",
+      "🕐 Domingo 11h COL (13h ARG)",
+      "📅 2026-10-25 11:00",
+      "🏷️ COL14349_DO-11",
+      "[PRM_COL14422_MI-15][1220] Web Design (PRM_COL14422_MI-15) · 90 min",
+      "🕐 Miércoles 15h COL (17h ARG)",
+      "📅 2026-10-28 15:00",
+      "🏷️ PRM_COL14422_MI-15",
+      "[PRM_COL14423_VI-18][1220] Web Design (PRM_COL14423_VI-18) · 90 min",
+      "🕐 Viernes 18h COL (20h ARG)",
+      "📅 2026-10-30 18:00",
+      "🏷️ PRM_COL14423_VI-18",
+      "[PRM_COL14529_DO-11][1220] Web Design (PRM_COL14529_DO-11) · 90 min",
+      "🕐 Domingo 11h COL (13h ARG)",
+      "📅 2026-11-01 11:00",
+      "🏷️ PRM_COL14529_DO-11",
+      "[PRM_COL14421_MA-17][1220] Web Design (PRM_COL14421_MA-17) · 90 min",
+      "🕐 Martes 17h COL (19h ARG)",
+      "📅 2026-11-03 17:00",
+      "🏷️ PRM_COL14421_MA-17",
+      "[PRM_COL14528_JU-18][1220] Web Design (PRM_COL14528_JU-18) · 90 min",
+      "🕐 Jueves 18h COL (20h ARG)",
+      "📅 2026-11-05 18:00",
+      "🏷️ PRM_COL14528_JU-18"
+    ],
+    "Minecraft": [
       "[COL14344_VI-16][1442] Roblox Game Developer Lvl 2 (COL14344_VI-16) · 90 min",
       "🕐 Viernes 16h COL (18h ARG)",
       "📅 2026-10-23 16:00",
@@ -268,6 +263,7 @@
       "📅 2026-11-24 17:00",
       "🏷️ PRM_COL14640_MA-17"
     ],
+    "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
     "Code & Game lvl 2": [],
     "Code & Game: LVL3": [
