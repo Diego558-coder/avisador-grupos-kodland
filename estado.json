@@ -226,7 +226,7 @@
       "📅 2026-11-09 18:00",
       "🏷️ COL14593_LU-18"
     ],
-    "Python LVL2": [
+    "Web Design": [
       "[PRM_COL14113_MA-17][1218] Python LVL2 (PRM_COL14113_MA-17) · 90 min",
       "🕐 Martes 17h COL (19h ARG)",
       "📅 2026-10-20 17:00",
@@ -268,7 +268,7 @@
       "📅 2027-01-03 9:00",
       "🏷️ PRM_COL14474_DO-9"
     ],
-    "Web Design": [
+    "Roblox Game Developer Lvl 2": [
       "[COL14349_DO-11][1220] Web Design (COL14349_DO-11) · 90 min",
       "🕐 Domingo 11h COL (13h ARG)",
       "📅 2026-10-25 11:00",
@@ -294,7 +294,7 @@
       "📅 2026-11-05 18:00",
       "🏷️ PRM_COL14528_JU-18"
     ],
-    "Roblox Game Developer Lvl 2": [
+    "Minecraft": [
       "[PRM_COL_14405_MA-18][1442] Roblox Game Developer Lvl 2 (PRM_COL_14405_MA-18) · 90 min",
       "🕐 Martes 18h COL (20h ARG)",
       "📅 2026-10-20 18:00",
@@ -324,10 +324,10 @@
       "📅 2026-11-24 17:00",
       "🏷️ PRM_COL14640_MA-17"
     ],
-    "Minecraft": [],
     "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
-    "Code & Game lvl 2": [
+    "Code & Game lvl 2": [],
+    "Code & Game: LVL3": [
       "[PRM_COL14379_VI-18][2060] Code & Game lvl 2 (PRM_COL14379_VI-18) · 90 min",
       "🕐 Viernes 18h COL (20h ARG)",
       "📅 2026-10-23 18:00",
@@ -453,48 +453,52 @@
       "📅 2026-10-31 13:00",
       "🏷️ COL14625_SA-13"
     ],
-    "Code & Game: LVL3": [
-      "[PRM_COL14438_LU-18][2059] Code & Game: LVL3 (PRM_COL14438_LU-18) · 90 min",
-      "🕐 Lunes 18h COL (20h ARG)",
-      "📅 2026-10-26 18:00",
-      "🏷️ PRM_COL14438_LU-18",
-      "[PRM_COL14513_JU-19][2059] Code & Game: LVL3 (PRM_COL14513_JU-19) · 90 min",
-      "🕐 Jueves 19h COL (21h ARG)",
-      "📅 2026-10-29 19:00",
-      "🏷️ PRM_COL14513_JU-19",
-      "[PRM_COL14615_SA-12][2059] Code & Game: LVL3 (PRM_COL14615_SA-12) · 90 min",
-      "🕐 Sábado 12h COL (14h ARG)",
-      "📅 2026-10-31 12:00",
-      "🏷️ PRM_COL14615_SA-12",
-      "[PRM_COL14569_LU-17][2059] Code & Game: LVL3 (PRM_COL14569_LU-17) · 90 min",
-      "🕐 Lunes 17h COL (19h ARG)",
-      "📅 2026-11-02 17:00",
-      "🏷️ PRM_COL14569_LU-17",
-      "[PRM_COL14614_MA-18][2059] Code & Game: LVL3 (PRM_COL14614_MA-18) · 90 min",
-      "🕐 Martes 18h COL (20h ARG)",
-      "📅 2026-11-03 18:00",
-      "🏷️ PRM_COL14614_MA-18",
-      "[COL14601_JU-16][2059] Code & Game: LVL3 (COL14601_JU-16) · 90 min",
-      "🕐 Jueves 16h COL (18h ARG)",
-      "📅 2026-11-05 16:00",
-      "🏷️ COL14601_JU-16",
-      "[COL14629_SA-12][2059] Code & Game: LVL3 (COL14629_SA-12) · 90 min",
-      "🕐 Sábado 12h COL (14h ARG)",
-      "📅 2026-11-07 12:00",
-      "🏷️ COL14629_SA-12",
-      "[COL14628_VI-20][2059] Code & Game: LVL3 (COL14628_VI-20) · 90 min",
-      "🕐 Viernes 20h COL (22h ARG)",
-      "📅 2026-11-13 20:00",
-      "🏷️ COL14628_VI-20",
-      "[COL14620_MA-19][2059] Code & Game: LVL3 (COL14620_MA-19) · 90 min",
-      "🕐 Martes 19h COL (21h ARG)",
-      "📅 2026-12-01 19:00",
-      "🏷️ COL14620_MA-19"
+    "Python LVL2": [
+      "[PRM_COL14113_MA-17][1218] Python LVL2 (PRM_COL14113_MA-17) · 90 min",
+      "🕐 Martes 17h COL (19h ARG)",
+      "📅 2026-10-20 17:00",
+      "🏷️ PRM_COL14113_MA-17",
+      "[PRM_COL14406_DO-9][1218] Python LVL2 (PRM_COL14406_DO-9) · 90 min",
+      "🕐 Domingo 9h COL (11h ARG)",
+      "📅 2026-10-25 9:00",
+      "🏷️ PRM_COL14406_DO-9",
+      "[COL14347_DO-10][1218] Python LVL2 (COL14347_DO-10) · 90 min",
+      "🕐 Domingo 10h COL (12h ARG)",
+      "📅 2026-10-25 10:00",
+      "🏷️ COL14347_DO-10",
+      "[PRM_COL14437_MI-17][1218] Python LVL2 (PRM_COL14437_MI-17) · 90 min",
+      "🕐 Miércoles 17h COL (19h ARG)",
+      "📅 2026-10-28 17:00",
+      "🏷️ PRM_COL14437_MI-17",
+      "[PRM_COL14610_MI-18][1218] Python LVL2 (PRM_COL14610_MI-18) · 90 min",
+      "🕐 Miércoles 18h COL (20h ARG)",
+      "📅 2026-11-04 18:00",
+      "🏷️ PRM_COL14610_MI-18",
+      "[PRM_COL14210_JU-17][1218] Python LVL2 (PRM_COL14210_JU-17) · 90 min",
+      "🕐 Jueves 17h COL (19h ARG)",
+      "📅 2026-11-05 17:00",
+      "🏷️ PRM_COL14210_JU-17",
+      "[COL14372_JU-18][1218] Python LVL2 (COL14372_JU-18) · 90 min",
+      "🕐 Jueves 18h COL (20h ARG)",
+      "📅 2026-11-12 18:00",
+      "🏷️ COL14372_JU-18",
+      "[COL14627_MA-17][1218] Python LVL2 (COL14627_MA-17) · 90 min",
+      "🕐 Martes 17h COL (19h ARG)",
+      "📅 2026-11-17 17:00",
+      "🏷️ COL14627_MA-17",
+      "[COL14626_MI-11][1218] Python LVL2 (COL14626_MI-11) · 90 min",
+      "🕐 Miércoles 11h COL (13h ARG)",
+      "📅 2026-12-16 11:00",
+      "🏷️ COL14626_MI-11",
+      "[PRM_COL14474_DO-9][1218] Python LVL2 (PRM_COL14474_DO-9) · 90 min",
+      "🕐 Domingo 9h COL (11h ARG)",
+      "📅 2027-01-03 9:00",
+      "🏷️ PRM_COL14474_DO-9"
     ]
   },
   "vacios": {},
   "faltas": {
-    "Code & Game: LVL3": 1
+    "Python LVL2": 1
   },
   "ultimo_heartbeat": "2026-10-20T05:49:07+00:00"
 }
