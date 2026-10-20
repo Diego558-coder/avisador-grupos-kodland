@@ -223,7 +223,7 @@
       "📅 2027-01-03 9:00",
       "🏷️ PRM_COL14474_DO-9"
     ],
-    "Web Design": [
+    "Roblox Game Developer Lvl 2": [
       "[COL14349_DO-11][1220] Web Design (COL14349_DO-11) · 90 min",
       "🕐 Domingo 11h COL (13h ARG)",
       "📅 2026-10-25 11:00",
@@ -249,7 +249,11 @@
       "📅 2026-11-05 18:00",
       "🏷️ PRM_COL14528_JU-18"
     ],
-    "Roblox Game Developer Lvl 2": [
+    "Minecraft": [
+      "[PRM_COL14314_MI-15][1442] Roblox Game Developer Lvl 2 (PRM_COL14314_MI-15) · 90 min",
+      "🕐 Miércoles 15h COL (17h ARG)",
+      "📅 2026-10-21 15:00",
+      "🏷️ PRM_COL14314_MI-15",
       "[COL14344_VI-16][1442] Roblox Game Developer Lvl 2 (COL14344_VI-16) · 90 min",
       "🕐 Viernes 16h COL (18h ARG)",
       "📅 2026-10-23 16:00",
@@ -275,7 +279,6 @@
       "📅 2026-11-24 17:00",
       "🏷️ PRM_COL14640_MA-17"
     ],
-    "Minecraft": [],
     "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
     "Code & Game lvl 2": [
@@ -405,10 +408,6 @@
       "🏷️ COL14625_SA-13"
     ],
     "Minecraft Craftforge Intermediate": [
-      "[PRM_COL14280_JU-13][2133] Minecraft Craftforge Intermediate (PRM_COL14280_JU-13) · 90 min",
-      "🕐 Jueves 13h COL (15h ARG)",
-      "📅 2026-10-22 13:00",
-      "🏷️ PRM_COL14280_JU-13",
       "[PRM_COL14399_JU-17][2133] Minecraft Craftforge Intermediate (PRM_COL14399_JU-17) · 90 min",
       "🕐 Jueves 17h COL (19h ARG)",
       "📅 2026-10-22 17:00",
@@ -433,9 +432,37 @@
       "🕐 Miércoles 15h COL (17h ARG)",
       "📅 2026-11-11 15:00",
       "🏷️ COL14646_MI-15"
+    ],
+    "Web Design": [
+      "[COL14349_DO-11][1220] Web Design (COL14349_DO-11) · 90 min",
+      "🕐 Domingo 11h COL (13h ARG)",
+      "📅 2026-10-25 11:00",
+      "🏷️ COL14349_DO-11",
+      "[PRM_COL14422_MI-15][1220] Web Design (PRM_COL14422_MI-15) · 90 min",
+      "🕐 Miércoles 15h COL (17h ARG)",
+      "📅 2026-10-28 15:00",
+      "🏷️ PRM_COL14422_MI-15",
+      "[PRM_COL14423_VI-18][1220] Web Design (PRM_COL14423_VI-18) · 90 min",
+      "🕐 Viernes 18h COL (20h ARG)",
+      "📅 2026-10-30 18:00",
+      "🏷️ PRM_COL14423_VI-18",
+      "[PRM_COL14529_DO-11][1220] Web Design (PRM_COL14529_DO-11) · 90 min",
+      "🕐 Domingo 11h COL (13h ARG)",
+      "📅 2026-11-01 11:00",
+      "🏷️ PRM_COL14529_DO-11",
+      "[PRM_COL14421_MA-17][1220] Web Design (PRM_COL14421_MA-17) · 90 min",
+      "🕐 Martes 17h COL (19h ARG)",
+      "📅 2026-11-03 17:00",
+      "🏷️ PRM_COL14421_MA-17",
+      "[PRM_COL14528_JU-18][1220] Web Design (PRM_COL14528_JU-18) · 90 min",
+      "🕐 Jueves 18h COL (20h ARG)",
+      "📅 2026-11-05 18:00",
+      "🏷️ PRM_COL14528_JU-18"
     ]
   },
   "vacios": {},
-  "faltas": {},
+  "faltas": {
+    "Web Design": 1
+  },
   "ultimo_heartbeat": "2026-10-20T05:49:07+00:00"
 }
