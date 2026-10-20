@@ -43,10 +43,6 @@
       "🕐 Sábado 9h COL (11h ARG)",
       "📅 2026-10-24 9:00",
       "🏷️ PRM_COL14315_SA-9",
-      "[PRM_COL14631_SA-12][1209] Unity Game Developer (PRM_COL14631_SA-12) · 90 min",
-      "🕐 Sábado 12h COL (14h ARG)",
-      "📅 2026-10-24 12:00",
-      "🏷️ PRM_COL14631_SA-12",
       "[PRM_COL14558_MI-17][1209] Unity Game Developer (PRM_COL14558_MI-17) · 90 min",
       "🕐 Miércoles 17h COL (19h ARG)",
       "📅 2026-10-28 17:00",
@@ -318,8 +314,7 @@
     ],
     "Minecraft": [],
     "Minecraft SubCourse": [],
-    "Code & Game lvl 2": [],
-    "Code & Game: LVL3": [
+    "Code & Game lvl 2": [
       "[PRM_COL14379_VI-18][2060] Code & Game lvl 2 (PRM_COL14379_VI-18) · 90 min",
       "🕐 Viernes 18h COL (20h ARG)",
       "📅 2026-10-23 18:00",
@@ -377,7 +372,7 @@
       "📅 2026-11-13 16:00",
       "🏷️ COL14652_VI-16"
     ],
-    "Minecraft Craftforge Beginner": [
+    "Code & Game: LVL3": [
       "[PRM_COL14438_LU-18][2059] Code & Game: LVL3 (PRM_COL14438_LU-18) · 90 min",
       "🕐 Lunes 18h COL (20h ARG)",
       "📅 2026-10-26 18:00",
@@ -415,6 +410,7 @@
       "📅 2026-12-01 19:00",
       "🏷️ COL14620_MA-19"
     ],
+    "Minecraft Craftforge Beginner": [],
     "Minecraft Craftforge Intermediate": [
       "[PRM_COL14332_VI-16][2124] Minecraft Craftforge Beginner (PRM_COL14332_VI-16) · 60 min",
       "🕐 Viernes 16h COL (18h ARG)",
@@ -449,7 +445,7 @@
   },
   "vacios": {},
   "faltas": {
-    "Minecraft lv 2": 1
+    "Minecraft lv 2": 2
   },
   "ultimo_heartbeat": "2026-10-20T05:49:07+00:00"
 }
