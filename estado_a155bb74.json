@@ -326,5 +326,6 @@
   },
   "vacios": {},
   "faltas": {},
-  "ultimo_heartbeat": "2026-10-20T18:11:54+00:00"
+  "ultimo_heartbeat": "2026-10-20T18:11:54+00:00",
+  "error_avisado": true
 }
