@@ -128,7 +128,27 @@
       "[COL14671_JU-13][1210] Roblox Game Developer (COL14671_JU-13) · 90 min",
       "🕐 Jueves 13h COL (15h ARG)",
       "📅 2026-11-12 13:00",
-      "🏷️ COL14671_JU-13"
+      "🏷️ COL14671_JU-13",
+      "[PRM_COL14261_LU-10][2133] Minecraft Craftforge Intermediate (PRM_COL14261_LU-10) · 90 min",
+      "🕐 Lunes 10h COL (12h ARG)",
+      "📅 2026-10-26 10:00",
+      "🏷️ PRM_COL14261_LU-10",
+      "[PRM_COL14426_MA-17][2133] Minecraft Craftforge Intermediate (PRM_COL14426_MA-17) · 90 min",
+      "🕐 Martes 17h COL (19h ARG)",
+      "📅 2026-10-27 17:00",
+      "🏷️ PRM_COL14426_MA-17",
+      "[PRM_COL14427_MI-16][2133] Minecraft Craftforge Intermediate (PRM_COL14427_MI-16) · 90 min",
+      "🕐 Miércoles 16h COL (18h ARG)",
+      "📅 2026-10-28 16:00",
+      "🏷️ PRM_COL14427_MI-16",
+      "[PRM_COL14634_JU-17][2133] Minecraft Craftforge Intermediate (PRM_COL14634_JU-17) · 90 min",
+      "🕐 Jueves 17h COL (19h ARG)",
+      "📅 2026-11-05 18:00",
+      "🏷️ PRM_COL14634_JU-17",
+      "[COL14646_MI-15][2133] Minecraft Craftforge Intermediate (COL14646_MI-15) · 90 min",
+      "🕐 Miércoles 15h COL (17h ARG)",
+      "📅 2026-11-11 15:00",
+      "🏷️ COL14646_MI-15"
     ],
     "Roblox Game Developer Lvl 2": [
       "[COL14344_VI-16][1442] Roblox Game Developer Lvl 2 (COL14344_VI-16) · 90 min",
@@ -309,6 +329,8 @@
     ]
   },
   "vacios": {},
-  "faltas": {},
+  "faltas": {
+    "Minecraft Craftforge Intermediate": 1
+  },
   "ultimo_heartbeat": "2026-10-21T06:11:58+00:00"
 }
