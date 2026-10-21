@@ -152,7 +152,6 @@
       "📅 2026-11-24 17:00",
       "🏷️ PRM_COL14640_MA-17"
     ],
-    "Minecraft": [],
     "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
     "Code & Game lvl 2": [
@@ -302,9 +301,12 @@
       "🕐 Miércoles 15h COL (17h ARG)",
       "📅 2026-11-11 15:00",
       "🏷️ COL14646_MI-15"
-    ]
+    ],
+    "Minecraft": []
   },
   "vacios": {},
-  "faltas": {},
+  "faltas": {
+    "Minecraft": 1
+  },
   "ultimo_heartbeat": "2026-10-21T18:18:41+00:00"
 }
