@@ -1,6 +1,27 @@
 {
   "cursos": {
-    "Python LVL1": [],
+    "Python LVL1": [
+      "[PRM_COL14261_LU-10][2133] Minecraft Craftforge Intermediate (PRM_COL14261_LU-10) · 90 min",
+      "🕐 Lunes 10h COL (12h ARG)",
+      "📅 2026-10-26 10:00",
+      "🏷️ PRM_COL14261_LU-10",
+      "[PRM_COL14426_MA-17][2133] Minecraft Craftforge Intermediate (PRM_COL14426_MA-17) · 90 min",
+      "🕐 Martes 17h COL (19h ARG)",
+      "📅 2026-10-27 17:00",
+      "🏷️ PRM_COL14426_MA-17",
+      "[PRM_COL14427_MI-16][2133] Minecraft Craftforge Intermediate (PRM_COL14427_MI-16) · 90 min",
+      "🕐 Miércoles 16h COL (18h ARG)",
+      "📅 2026-10-28 16:00",
+      "🏷️ PRM_COL14427_MI-16",
+      "[PRM_COL14634_JU-17][2133] Minecraft Craftforge Intermediate (PRM_COL14634_JU-17) · 90 min",
+      "🕐 Jueves 17h COL (19h ARG)",
+      "📅 2026-11-05 18:00",
+      "🏷️ PRM_COL14634_JU-17",
+      "[COL14646_MI-15][2133] Minecraft Craftforge Intermediate (COL14646_MI-15) · 90 min",
+      "🕐 Miércoles 15h COL (17h ARG)",
+      "📅 2026-11-11 15:00",
+      "🏷️ COL14646_MI-15"
+    ],
     "Unity Game Developer": [
       "[PRM_COL14315_SA-9][1209] Unity Game Developer (PRM_COL14315_SA-9) · 90 min",
       "🕐 Sábado 9h COL (11h ARG)",
@@ -48,10 +69,6 @@
       "🏷️ COL14616_MI-12"
     ],
     "Roblox Game Developer": [
-      "[PRM_COL14477_VI-17][1210] Roblox Game Developer (PRM_COL14477_VI-17) · 90 min",
-      "🕐 Viernes 17h COL (19h ARG)",
-      "📅 2026-10-23 17:00",
-      "🏷️ PRM_COL14477_VI-17",
       "[PRM_COL14432_SA-11][1210] Roblox Game Developer (PRM_COL14432_SA-11) · 90 min",
       "🕐 Sábado 11h COL (13h ARG)",
       "📅 2026-10-24 11:00",
@@ -267,14 +284,10 @@
       "📅 2026-11-24 17:00",
       "🏷️ PRM_COL14640_MA-17"
     ],
-    "Minecraft": [],
     "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
-    "Code & Game lvl 2": [
-      "[PRM_COL14379_VI-18][2060] Code & Game lvl 2 (PRM_COL14379_VI-18) · 90 min",
-      "🕐 Viernes 18h COL (20h ARG)",
-      "📅 2026-10-23 18:00",
-      "🏷️ PRM_COL14379_VI-18",
+    "Code & Game lvl 2": [],
+    "Code & Game: LVL3": [
       "[COL14342_SA-10][2060] Code & Game lvl 2 (COL14342_SA-10) · 90 min",
       "🕐 Sábado 10h COL (12h ARG)",
       "📅 2026-10-24 10:00",
@@ -332,7 +345,7 @@
       "📅 2026-11-13 16:00",
       "🏷️ COL14652_VI-16"
     ],
-    "Code & Game: LVL3": [
+    "Minecraft Craftforge Beginner": [
       "[PRM_COL14438_LU-18][2059] Code & Game: LVL3 (PRM_COL14438_LU-18) · 90 min",
       "🕐 Lunes 18h COL (20h ARG)",
       "📅 2026-10-26 18:00",
@@ -366,11 +379,7 @@
       "📅 2026-12-01 19:00",
       "🏷️ COL14620_MA-19"
     ],
-    "Minecraft Craftforge Beginner": [
-      "[PRM_COL14332_VI-16][2124] Minecraft Craftforge Beginner (PRM_COL14332_VI-16) · 60 min",
-      "🕐 Viernes 16h COL (18h ARG)",
-      "📅 2026-10-23 16:00",
-      "🏷️ PRM_COL14332_VI-16",
+    "Minecraft Craftforge Intermediate": [
       "[PRM_COL14452_SA-11][2124] Minecraft Craftforge Beginner (PRM_COL14452_SA-11) · 60 min",
       "🕐 Sábado 11h COL (13h ARG)",
       "📅 2026-10-24 11:00",
@@ -400,30 +409,11 @@
       "📅 2026-11-14 9:00",
       "🏷️ PRM_COL14667_SA-9"
     ],
-    "Minecraft Craftforge Intermediate": [
-      "[PRM_COL14261_LU-10][2133] Minecraft Craftforge Intermediate (PRM_COL14261_LU-10) · 90 min",
-      "🕐 Lunes 10h COL (12h ARG)",
-      "📅 2026-10-26 10:00",
-      "🏷️ PRM_COL14261_LU-10",
-      "[PRM_COL14426_MA-17][2133] Minecraft Craftforge Intermediate (PRM_COL14426_MA-17) · 90 min",
-      "🕐 Martes 17h COL (19h ARG)",
-      "📅 2026-10-27 17:00",
-      "🏷️ PRM_COL14426_MA-17",
-      "[PRM_COL14427_MI-16][2133] Minecraft Craftforge Intermediate (PRM_COL14427_MI-16) · 90 min",
-      "🕐 Miércoles 16h COL (18h ARG)",
-      "📅 2026-10-28 16:00",
-      "🏷️ PRM_COL14427_MI-16",
-      "[PRM_COL14634_JU-17][2133] Minecraft Craftforge Intermediate (PRM_COL14634_JU-17) · 90 min",
-      "🕐 Jueves 17h COL (19h ARG)",
-      "📅 2026-11-05 18:00",
-      "🏷️ PRM_COL14634_JU-17",
-      "[COL14646_MI-15][2133] Minecraft Craftforge Intermediate (COL14646_MI-15) · 90 min",
-      "🕐 Miércoles 15h COL (17h ARG)",
-      "📅 2026-11-11 15:00",
-      "🏷️ COL14646_MI-15"
-    ]
+    "Minecraft": []
   },
   "vacios": {},
-  "faltas": {},
+  "faltas": {
+    "Minecraft": 1
+  },
   "ultimo_heartbeat": "2026-10-21T06:07:43+00:00"
 }
