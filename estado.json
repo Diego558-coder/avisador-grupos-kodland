@@ -1,6 +1,31 @@
 {
   "cursos": {
-    "Python LVL1": [],
+    "Python LVL1": [
+      "[PRM_COL14399_JU-17][2133] Minecraft Craftforge Intermediate (PRM_COL14399_JU-17) · 90 min",
+      "🕐 Jueves 17h COL (19h ARG)",
+      "📅 2026-10-22 17:00",
+      "🏷️ PRM_COL14399_JU-17",
+      "[PRM_COL14261_LU-10][2133] Minecraft Craftforge Intermediate (PRM_COL14261_LU-10) · 90 min",
+      "🕐 Lunes 10h COL (12h ARG)",
+      "📅 2026-10-26 10:00",
+      "🏷️ PRM_COL14261_LU-10",
+      "[PRM_COL14426_MA-17][2133] Minecraft Craftforge Intermediate (PRM_COL14426_MA-17) · 90 min",
+      "🕐 Martes 17h COL (19h ARG)",
+      "📅 2026-10-27 17:00",
+      "🏷️ PRM_COL14426_MA-17",
+      "[PRM_COL14427_MI-16][2133] Minecraft Craftforge Intermediate (PRM_COL14427_MI-16) · 90 min",
+      "🕐 Miércoles 16h COL (18h ARG)",
+      "📅 2026-10-28 16:00",
+      "🏷️ PRM_COL14427_MI-16",
+      "[PRM_COL14634_JU-17][2133] Minecraft Craftforge Intermediate (PRM_COL14634_JU-17) · 90 min",
+      "🕐 Jueves 17h COL (19h ARG)",
+      "📅 2026-11-05 18:00",
+      "🏷️ PRM_COL14634_JU-17",
+      "[COL14646_MI-15][2133] Minecraft Craftforge Intermediate (COL14646_MI-15) · 90 min",
+      "🕐 Miércoles 15h COL (17h ARG)",
+      "📅 2026-11-11 15:00",
+      "🏷️ COL14646_MI-15"
+    ],
     "Unity Game Developer": [
       "[PRM_COL14316_JU-18][1209] Unity Game Developer (PRM_COL14316_JU-18) · 90 min",
       "🕐 Jueves 18h COL (20h ARG)",
@@ -436,6 +461,8 @@
     ]
   },
   "vacios": {},
-  "faltas": {},
+  "faltas": {
+    "Minecraft Craftforge Intermediate": 1
+  },
   "ultimo_heartbeat": "2026-10-20T17:58:09+00:00"
 }
