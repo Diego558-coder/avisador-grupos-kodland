@@ -128,7 +128,27 @@
       "[COL14671_JU-13][1210] Roblox Game Developer (COL14671_JU-13) · 90 min",
       "🕐 Jueves 13h COL (15h ARG)",
       "📅 2026-11-12 13:00",
-      "🏷️ COL14671_JU-13"
+      "🏷️ COL14671_JU-13",
+      "[PRM_COL14261_LU-10][2133] Minecraft Craftforge Intermediate (PRM_COL14261_LU-10) · 90 min",
+      "🕐 Lunes 10h COL (12h ARG)",
+      "📅 2026-10-26 10:00",
+      "🏷️ PRM_COL14261_LU-10",
+      "[PRM_COL14426_MA-17][2133] Minecraft Craftforge Intermediate (PRM_COL14426_MA-17) · 90 min",
+      "🕐 Martes 17h COL (19h ARG)",
+      "📅 2026-10-27 17:00",
+      "🏷️ PRM_COL14426_MA-17",
+      "[PRM_COL14427_MI-16][2133] Minecraft Craftforge Intermediate (PRM_COL14427_MI-16) · 90 min",
+      "🕐 Miércoles 16h COL (18h ARG)",
+      "📅 2026-10-28 16:00",
+      "🏷️ PRM_COL14427_MI-16",
+      "[PRM_COL14634_JU-17][2133] Minecraft Craftforge Intermediate (PRM_COL14634_JU-17) · 90 min",
+      "🕐 Jueves 17h COL (19h ARG)",
+      "📅 2026-11-05 18:00",
+      "🏷️ PRM_COL14634_JU-17",
+      "[COL14646_MI-15][2133] Minecraft Craftforge Intermediate (COL14646_MI-15) · 90 min",
+      "🕐 Miércoles 15h COL (17h ARG)",
+      "📅 2026-11-11 15:00",
+      "🏷️ COL14646_MI-15"
     ],
     "Roblox Game Developer Lvl 2": [
       "[PRM_COL14380_LU-18][1442] Roblox Game Developer Lvl 2 (PRM_COL14380_LU-18) · 90 min",
@@ -152,10 +172,10 @@
       "📅 2026-11-24 17:00",
       "🏷️ PRM_COL14640_MA-17"
     ],
-    "Minecraft": [],
     "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
-    "Code & Game lvl 2": [
+    "Code & Game lvl 2": [],
+    "Code & Game: LVL3": [
       "[PRM_COL14507_SA-10][2060] Code & Game lvl 2 (PRM_COL14507_SA-10) · 90 min",
       "🕐 Sábado 10h COL (12h ARG)",
       "📅 2026-10-24 10:00",
@@ -213,7 +233,7 @@
       "📅 2026-11-13 16:00",
       "🏷️ COL14652_VI-16"
     ],
-    "Code & Game: LVL3": [
+    "Minecraft Craftforge Beginner": [
       "[PRM_COL14438_LU-18][2059] Code & Game: LVL3 (PRM_COL14438_LU-18) · 90 min",
       "🕐 Lunes 18h COL (20h ARG)",
       "📅 2026-10-26 18:00",
@@ -255,7 +275,7 @@
       "📅 2026-12-01 19:00",
       "🏷️ COL14620_MA-19"
     ],
-    "Minecraft Craftforge Beginner": [
+    "Minecraft Craftforge Intermediate": [
       "[PRM_COL14417_MA-17][2124] Minecraft Craftforge Beginner (PRM_COL14417_MA-17) · 60 min",
       "🕐 Martes 17h COL (19h ARG)",
       "📅 2026-10-27 17:00",
@@ -281,30 +301,11 @@
       "📅 2026-11-14 9:00",
       "🏷️ PRM_COL14667_SA-9"
     ],
-    "Minecraft Craftforge Intermediate": [
-      "[PRM_COL14261_LU-10][2133] Minecraft Craftforge Intermediate (PRM_COL14261_LU-10) · 90 min",
-      "🕐 Lunes 10h COL (12h ARG)",
-      "📅 2026-10-26 10:00",
-      "🏷️ PRM_COL14261_LU-10",
-      "[PRM_COL14426_MA-17][2133] Minecraft Craftforge Intermediate (PRM_COL14426_MA-17) · 90 min",
-      "🕐 Martes 17h COL (19h ARG)",
-      "📅 2026-10-27 17:00",
-      "🏷️ PRM_COL14426_MA-17",
-      "[PRM_COL14427_MI-16][2133] Minecraft Craftforge Intermediate (PRM_COL14427_MI-16) · 90 min",
-      "🕐 Miércoles 16h COL (18h ARG)",
-      "📅 2026-10-28 16:00",
-      "🏷️ PRM_COL14427_MI-16",
-      "[PRM_COL14634_JU-17][2133] Minecraft Craftforge Intermediate (PRM_COL14634_JU-17) · 90 min",
-      "🕐 Jueves 17h COL (19h ARG)",
-      "📅 2026-11-05 18:00",
-      "🏷️ PRM_COL14634_JU-17",
-      "[COL14646_MI-15][2133] Minecraft Craftforge Intermediate (COL14646_MI-15) · 90 min",
-      "🕐 Miércoles 15h COL (17h ARG)",
-      "📅 2026-11-11 15:00",
-      "🏷️ COL14646_MI-15"
-    ]
+    "Minecraft": []
   },
   "vacios": {},
-  "faltas": {},
+  "faltas": {
+    "Minecraft": 1
+  },
   "ultimo_heartbeat": "2026-10-22T06:24:32+00:00"
 }
