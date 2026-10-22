@@ -237,7 +237,6 @@
     ],
     "Minecraft": [],
     "Minecraft lv 2": [],
-    "Minecraft SubCourse": [],
     "Code & Game lvl 2": [
       "[PRM_COL14507_SA-10][2060] Code & Game lvl 2 (PRM_COL14507_SA-10) · 90 min",
       "🕐 Sábado 10h COL (12h ARG)",
@@ -373,9 +372,12 @@
       "🕐 Miércoles 15h COL (17h ARG)",
       "📅 2026-11-11 15:00",
       "🏷️ COL14646_MI-15"
-    ]
+    ],
+    "Minecraft SubCourse": []
   },
   "vacios": {},
-  "faltas": {},
+  "faltas": {
+    "Minecraft SubCourse": 1
+  },
   "ultimo_heartbeat": "2026-10-21T18:14:09+00:00"
 }
