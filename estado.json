@@ -235,7 +235,6 @@
       "📅 2026-11-24 17:00",
       "🏷️ PRM_COL14640_MA-17"
     ],
-    "Minecraft": [],
     "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
     "Code & Game lvl 2": [
@@ -352,6 +351,7 @@
       "📅 2026-11-14 9:00",
       "🏷️ PRM_COL14667_SA-9"
     ],
+    "Minecraft": [],
     "Minecraft Craftforge Intermediate": [
       "[PRM_COL14261_LU-10][2133] Minecraft Craftforge Intermediate (PRM_COL14261_LU-10) · 90 min",
       "🕐 Lunes 10h COL (12h ARG)",
@@ -376,6 +376,9 @@
     ]
   },
   "vacios": {},
-  "faltas": {},
+  "faltas": {
+    "Minecraft": 1,
+    "Minecraft Craftforge Intermediate": 1
+  },
   "ultimo_heartbeat": "2026-10-22T06:20:40+00:00"
 }
