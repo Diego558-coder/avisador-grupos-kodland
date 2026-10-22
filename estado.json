@@ -178,7 +178,7 @@
       "📅 2026-11-12 13:00",
       "🏷️ COL14671_JU-13"
     ],
-    "Web Design": [
+    "Python LVL2": [
       "[PRM_COL14406_DO-9][1218] Python LVL2 (PRM_COL14406_DO-9) · 90 min",
       "🕐 Domingo 9h COL (11h ARG)",
       "📅 2026-10-25 9:00",
@@ -373,7 +373,7 @@
       "📅 2026-11-14 9:00",
       "🏷️ PRM_COL14667_SA-9"
     ],
-    "Python LVL2": [
+    "Web Design": [
       "[PRM_COL14406_DO-9][1218] Python LVL2 (PRM_COL14406_DO-9) · 90 min",
       "🕐 Domingo 9h COL (11h ARG)",
       "📅 2026-10-25 9:00",
@@ -410,7 +410,7 @@
   },
   "vacios": {},
   "faltas": {
-    "Python LVL2": 1
+    "Web Design": 1
   },
   "ultimo_heartbeat": "2026-10-22T06:20:40+00:00"
 }
