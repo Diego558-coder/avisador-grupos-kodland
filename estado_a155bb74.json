@@ -301,6 +301,8 @@
     ]
   },
   "vacios": {},
-  "faltas": {},
+  "faltas": {
+    "Minecraft Craftforge Intermediate": 1
+  },
   "ultimo_heartbeat": "2026-10-22T18:31:09+00:00"
 }
