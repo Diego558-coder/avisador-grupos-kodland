@@ -300,7 +300,363 @@
       "🏷️ COL14646_MI-15"
     ]
   },
-  "vacios": {},
+  "avisados": {
+    "COL14334_LU-12": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14313_LU-15": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14484_LU-18": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14377_MA-11": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14489_MA-17": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14465_MI-18": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14540_JU-17": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14456_JU-17": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14454_JU-18": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14367_VI-15": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14400_VI-18": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14533_SA-10": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14402_SA-10": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14324_SA-10": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14541_SA-12": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14548_SA-13": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14624_DO-16": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14337_LU-16": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14613_MA-12": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14649_MA-18": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14623_MA-19": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14366_MI-20": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14636_JU-12": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14663_JU-17": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14245_JU-18": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14648_VI-10": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14647_VI-17": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14662_VI-18": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14635_SA-18": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14622_SA-18": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14593_LU-18": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14671_JU-13": {
+      "curso": "Roblox Game Developer",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14380_LU-18": {
+      "curso": "Roblox Game Developer Lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14554_MI-11": {
+      "curso": "Roblox Game Developer Lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14117_JU-20": {
+      "curso": "Roblox Game Developer Lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14655_MA-18": {
+      "curso": "Roblox Game Developer Lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14640_MA-17": {
+      "curso": "Roblox Game Developer Lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14639_MA-16": {
+      "curso": "Code & Game lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14341_MA-18": {
+      "curso": "Code & Game lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14360_MA-18": {
+      "curso": "Code & Game lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14505_MI-18": {
+      "curso": "Code & Game lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14371_JU-11": {
+      "curso": "Code & Game lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14506_JU-17": {
+      "curso": "Code & Game lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14608_VI-18": {
+      "curso": "Code & Game lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14597_SA-10": {
+      "curso": "Code & Game lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14665_MI-17": {
+      "curso": "Code & Game lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14598_MI-17": {
+      "curso": "Code & Game lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14654_SA-8": {
+      "curso": "Code & Game lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14653_MA-17": {
+      "curso": "Code & Game lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14652_VI-16": {
+      "curso": "Code & Game lvl 2",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14438_LU-18": {
+      "curso": "Code & Game: LVL3",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14513_JU-19": {
+      "curso": "Code & Game: LVL3",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14615_SA-12": {
+      "curso": "Code & Game: LVL3",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14569_LU-17": {
+      "curso": "Code & Game: LVL3",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14614_MA-18": {
+      "curso": "Code & Game: LVL3",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14463_MI-18": {
+      "curso": "Code & Game: LVL3",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14601_JU-16": {
+      "curso": "Code & Game: LVL3",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14629_SA-12": {
+      "curso": "Code & Game: LVL3",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14628_VI-20": {
+      "curso": "Code & Game: LVL3",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14620_MA-19": {
+      "curso": "Code & Game: LVL3",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14417_MA-17": {
+      "curso": "Minecraft Craftforge Beginner",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14522_MI-16": {
+      "curso": "Minecraft Craftforge Beginner",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14542_VI-13": {
+      "curso": "Minecraft Craftforge Beginner",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14632_VI-16": {
+      "curso": "Minecraft Craftforge Beginner",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14625_SA-13": {
+      "curso": "Minecraft Craftforge Beginner",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14667_SA-9": {
+      "curso": "Minecraft Craftforge Beginner",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14261_LU-10": {
+      "curso": "Minecraft Craftforge Intermediate",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14426_MA-17": {
+      "curso": "Minecraft Craftforge Intermediate",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14427_MI-16": {
+      "curso": "Minecraft Craftforge Intermediate",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "PRM_COL14634_JU-17": {
+      "curso": "Minecraft Craftforge Intermediate",
+      "desde": null,
+      "visto": "2026-10-25"
+    },
+    "COL14646_MI-15": {
+      "curso": "Minecraft Craftforge Intermediate",
+      "desde": null,
+      "visto": "2026-10-25"
+    }
+  },
   "faltas": {},
   "ultimo_heartbeat": "2026-10-25T06:56:10+00:00"
 }
