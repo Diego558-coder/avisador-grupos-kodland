@@ -174,13 +174,13 @@ def ruta_estado(tutor):
 
 def ruta_historial(tutor):
     """Un archivo por tutor (según su ID o chat, no su posición) para guardar sus
-    postulaciones y cuándo se detectó cada grupo nuevo."""
+    postulaciones. Cuándo se detectó cada grupo nuevo va en su estado ("avisados")."""
     ident = tutor.get("kt_id") or tutor.get("telegram_chat") or str(tutor["pos"])
     return BASE / f"historial_{hashlib.sha1(ident.encode()).hexdigest()[:8]}.json"
 
 
 def cargar_historial(tutor):
-    return cargar_json(ruta_historial(tutor), {"postulaciones": [], "nuevos": []})
+    return cargar_json(ruta_historial(tutor), {"postulaciones": []})
 
 
 def _agregar_con_tope(lista, entrada, tope=500):
@@ -195,25 +195,6 @@ def registrar_postulacion(tutor, curso, grupo, ok, mensaje):
         "curso": curso, "grupo": grupo, "ok": ok, "mensaje": mensaje[:200],
     })
     guardar_json(ruta_historial(tutor), h)
-
-
-def registrar_nuevos(tutor, ahora, curso, ids_grupo):
-    """Guarda cuándo se detectó cada grupo nuevo (para las estadísticas). No
-    duplica un mismo grupo si ya estaba registrado (p. ej. por un reintento)."""
-    if not ids_grupo:
-        return
-    h = cargar_historial(tutor)
-    ya = {(e["curso"], e["grupo"]) for e in h["nuevos"]}
-    cambiado = False
-    for gid in ids_grupo:
-        if (curso, gid) not in ya:
-            h["nuevos"] = _agregar_con_tope(h["nuevos"], {
-                "fecha": ahora.isoformat(timespec="seconds"), "curso": curso, "grupo": gid,
-            })
-            ya.add((curso, gid))
-            cambiado = True
-    if cambiado:
-        guardar_json(ruta_historial(tutor), h)
 
 
 def abrir_contexto(p, headless, kt_id=None, tutor=None):
@@ -369,9 +350,12 @@ def texto_estable(frame, max_seg=20):
     return anterior or ""
 
 
-def _esperar_grupos_nueva_app(frame, timeout_ms=15000):
-    frame.wait_for_function(
-        """() => {
+def _esperar_grupos_nueva_app(frame, timeout_ms=15000, curso=None):
+    """Espera a que la app pinte los grupos. Con `curso`, solo da por buenas tarjetas
+    de ese curso: la app pinta la última respuesta que llega aunque sea de un curso
+    anterior que tardó, y sin esta comprobación se guardaban grupos bajo otro curso."""
+    resultado = frame.wait_for_function(
+        """(curso) => {
             const grid = document.querySelector('#gruposGrid');
             const spinner = document.querySelector('#gruposSpinner');
             const alert = document.querySelector('#alertBox');
@@ -379,26 +363,23 @@ def _esperar_grupos_nueva_app(frame, timeout_ms=15000):
             const spinnerOculto = spinner.classList.contains('d-none');
             if (!spinnerOculto) return false;
             const alertVisible = alert && !alert.classList.contains('d-none');
-            const tieneTarjetas = grid.querySelectorAll('.card-group-item').length > 0;
-            const texto = (grid.innerText || '').toLowerCase();
-            const tieneMensaje = texto.includes('no hay grupos disponibles');
-            return tieneTarjetas || tieneMensaje || alertVisible;
+            // '[1209] Unity Game Developer (COL1_LU-12) · 90 min' -> 'unity game developer'
+            const nombre = t => (t || '').replace(/^\\s*\\[\\d+\\]\\s*/, '').replace(/\\s*\\(.*$/s, '')
+                .replace(/\\s+/g, ' ').trim().toLowerCase();
+            const tarjetas = [...grid.querySelectorAll('.card-group-item')];
+            if (tarjetas.length && (!curso || tarjetas.every(
+                    t => nombre(t.querySelector('small')?.textContent) === nombre(curso)))) {
+                return 'tarjetas';
+            }
+            if ((grid.innerText || '').toLowerCase().includes('no hay grupos disponibles')) return 'vacio';
+            return alertVisible ? 'alerta' : false;
         }""",
+        arg=curso,
         timeout=timeout_ms,
-    )
-    grid = frame.locator("#gruposGrid")
-    if grid.locator(".card-group-item").count():
-        return
-    texto = grid.inner_text().strip()
-    if "no hay grupos disponibles" in texto.lower():
-        return
-    alerta = frame.locator("#alertBox")
-    if alerta.is_visible():
+    ).json_value()
+    if resultado == "alerta":
         mensaje = frame.locator("#alertMsg").inner_text().strip()
-        if mensaje:
-            raise RuntimeError("La app no pudo cargar grupos: " + mensaje[:240])
-    if not texto:
-        raise RuntimeError("La nueva app terminó de cargar sin mostrar grupos ni un mensaje de estado.")
+        raise RuntimeError("La app no pudo cargar grupos: " + (mensaje[:240] or "sin detalle"))
 
 
 def _lineas_tarjetas_nueva_app(frame, curso):
@@ -424,6 +405,166 @@ def _lineas_tarjetas_nueva_app(frame, curso):
             lineas.append("📅 " + valor_inicio)
         lineas.append("🏷️ " + grupo)
     return lineas
+
+
+def _limpio(valor):
+    return " ".join(str(valor or "").split())
+
+
+def _lineas_de_grupos(grupos, curso):
+    """Las mismas líneas que _lineas_tarjetas_nueva_app, pero a partir de los datos que
+    devuelve el servidor de la app (lo que ella usa para pintar cada tarjeta)."""
+    lineas = []
+    for g in grupos:
+        grupo = _limpio(g.get("group"))
+        if not grupo or g.get("applied") is True:  # ya postulado: no es un grupo nuevo
+            continue
+        lineas.append(f"[{grupo}]{_limpio(g.get('course')) or curso}")
+        lineas.append("🕐 " + (_limpio(g.get("schedule")) or "A convenir"))
+        inicio = re.sub(r"^Inicia:\s*", "", _limpio(g.get("start")), flags=re.IGNORECASE)
+        if inicio:
+            lineas.append("📅 " + inicio)
+        lineas.append("🏷️ " + grupo)
+    return lineas
+
+
+# Pide los grupos con la misma función del servidor que usa la página al elegir un
+# curso (getDisponibles / getDisponiblesIND), unas pocas consultas a la vez para no
+# cargar la app de Kodland. Cada respuesta queda atada a su curso y un fallo se
+# distingue de un "no hay grupos". Devuelve null si la página no expone esa función.
+_JS_LEER_GRUPOS = """async ({tareas, paralelas, esperaMs, limiteMs}) => {
+    if (typeof google === 'undefined' || !google.script || !google.script.run
+        || typeof session === 'undefined' || !session || !session.tutor) {
+        return null;
+    }
+    const funciones = {grupal: 'getDisponibles', individual: 'getDisponiblesIND'};
+    const limite = Date.now() + limiteMs;
+    const pedir = tarea => new Promise(resolve => {
+        const reloj = setTimeout(() => resolve({error: `sin respuesta en ${esperaMs / 1000} s`}), esperaMs);
+        const terminar = valor => { clearTimeout(reloj); resolve(valor); };
+        try {
+            google.script.run
+                .withSuccessHandler(res => {
+                    const grupos = Array.isArray(res) ? res : (res && res.groups);
+                    if (!Array.isArray(grupos)) return terminar({error: 'respuesta sin lista de grupos'});
+                    terminar({grupos: grupos.map(g => ({
+                        group: g.group, course: g.course, schedule: g.schedule,
+                        start: g.start, applied: g.applied === true,
+                    }))});
+                })
+                .withFailureHandler(err => terminar({error: String((err && err.message) || err)}))
+                [funciones[tarea.modo]](session.tutor.id, tarea.curso);
+        } catch (e) {
+            terminar({error: String((e && e.message) || e)});
+        }
+    });
+    const salida = new Array(tareas.length);
+    let siguiente = 0;
+    const trabajador = async () => {
+        while (siguiente < tareas.length) {
+            const i = siguiente++;
+            let r = {error: 'sin tiempo para consultar'};
+            for (let intento = 0; intento < 2 && Date.now() < limite; intento++) {
+                r = await pedir(tareas[i]);
+                if (!r.error) break;
+            }
+            salida[i] = r;
+        }
+    };
+    await Promise.all(Array.from({length: Math.min(paralelas, tareas.length)}, trabajador));
+    return salida;
+}"""
+
+
+def _leer_grupos_directo(frame, opciones, modalidades, paralelas=3, espera_seg=40, limite_seg=240):
+    """Lecturas [{curso, modo, lineas | error}] pidiendo los datos al servidor de la app,
+    o None si la página no lo permite (entonces se leen las tarjetas de la pantalla)."""
+    pares = [(modo, o) for modo in modalidades for o in opciones]
+    if not pares:
+        return []
+    log(f"Consultando {len(opciones)} cursos directamente a la app "
+        f"({', '.join(m or 'grupal' for m in modalidades)})...")
+    respuestas = frame.evaluate(_JS_LEER_GRUPOS, {
+        "tareas": [{"curso": o["value"], "modo": modo or "grupal"} for modo, o in pares],
+        "paralelas": paralelas, "esperaMs": espera_seg * 1000, "limiteMs": limite_seg * 1000,
+    })
+    if respuestas is None:
+        return None
+    lecturas = []
+    for (modo, o), r in zip(pares, respuestas):
+        if r.get("error"):
+            lecturas.append({"curso": o["text"], "modo": modo, "error": _limpio(r["error"])[:160]})
+        else:
+            lecturas.append({"curso": o["text"], "modo": modo,
+                             "lineas": _lineas_de_grupos(r.get("grupos") or [], o["text"])})
+    return lecturas
+
+
+def _leer_grupos_pantalla(frame, opciones, modalidades, timeout_carga_ms=15000):
+    """Lecturas [{curso, modo, lineas | error}] eligiendo cada curso en el desplegable y
+    leyendo las tarjetas, como lo haría una persona. Es el respaldo de la lectura directa."""
+    lecturas = []
+    modalidad = frame.locator("#selModalidad")
+    for modo in modalidades:
+        if modo and modalidad.input_value() != modo:
+            frame.locator(SELECTOR_CURSO).evaluate("selector => { selector.value = ''; }")
+            modalidad.select_option(value=modo, timeout=8000)
+            time.sleep(0.8)
+        for opcion in opciones:
+            log(f"Consultando {opcion['text']} ({modo or 'grupal'})...")
+            try:
+                frame.evaluate("""() => {
+                    const grid = document.querySelector('#gruposGrid');
+                    if (grid) grid.innerHTML = '';
+                    const spinner = document.querySelector('#gruposSpinner');
+                    if (spinner) spinner.classList.remove('d-none');
+                    const alerta = document.querySelector('#alertBox');
+                    if (alerta) alerta.classList.add('d-none');  // que no cuente un error viejo
+                }""")
+                frame.select_option(SELECTOR_CURSO, value=opcion["value"], timeout=8000)
+                _esperar_grupos_nueva_app(frame, timeout_ms=timeout_carga_ms, curso=opcion["text"])
+                lecturas.append({"curso": opcion["text"], "modo": modo,
+                                 "lineas": _lineas_tarjetas_nueva_app(frame, opcion["text"])})
+            except Exception as e:
+                lecturas.append({"curso": opcion["text"], "modo": modo, "error": type(e).__name__})
+                # La respuesta que no llegó a tiempo puede llegar después y pintarse
+                # encima del curso siguiente: se espera a que aterrice antes de seguir.
+                try:
+                    frame.wait_for_function(
+                        "() => document.querySelector('#gruposSpinner')?.classList.contains('d-none')",
+                        timeout=30000,
+                    )
+                except Exception:
+                    pass
+            time.sleep(0.3)
+    return lecturas
+
+
+def _juntar_lecturas(lecturas, tolerar_errores_carga=True, incompletos=None):
+    """Junta las lecturas por (curso, modalidad) en ({curso: líneas}, [errores]).
+    Un curso con alguna modalidad sin leer se añade a `incompletos`, salvo que esa
+    modalidad haya fallado en TODOS los cursos: entonces es la modalidad la que no
+    está disponible (p. ej. la app no tiene 1-1 para la cuenta) y no el curso."""
+    resultado, errores_lectura = {}, []
+    modos_ok = {l["modo"] for l in lecturas if "error" not in l}
+    for l in lecturas:
+        etiqueta = f"{l['curso']} ({l['modo'] or 'grupal'})"
+        if "error" in l:
+            if not tolerar_errores_carga:
+                raise RuntimeError(f"No se pudo leer {etiqueta}: {l['error']}")
+            if l["modo"] in modos_ok:
+                log(f"Lectura incompleta: {etiqueta}: {l['error']}")
+                errores_lectura.append(f"{etiqueta}: {l['error']}")
+                if incompletos is not None:
+                    incompletos.add(l["curso"])
+            continue
+        resultado[l["curso"]] = _deduplicar_grupos_por_id(resultado.get(l["curso"], []) + l["lineas"])
+        log(f"  {etiqueta}: {len(parsear_grupos(l['lineas']))} grupos")
+    for modo in {l["modo"] for l in lecturas} - modos_ok:
+        error = next(l["error"] for l in lecturas if l["modo"] == modo)
+        log(f"La modalidad {modo or 'grupal'} falló en todos los cursos ({error}); se omite en esta revisión.")
+        errores_lectura.append(f"modalidad {modo or 'grupal'}: {error}")
+    return resultado, errores_lectura
 
 
 def _deduplicar_grupos_por_id(lineas):
@@ -526,9 +667,12 @@ def leer_todos_los_cursos(
     tutor=None,
     modalidad_objetivo=None,
     tolerar_errores_carga=True,
+    incompletos=None,
 ):
     """Devuelve ({curso: [lineas de texto]}, [errores_lectura]).
-    `p`: un Playwright ya iniciado, para reutilizarlo."""
+    `p`: un Playwright ya iniciado, para reutilizarlo.
+    `incompletos`: si se pasa un set, se le añaden los cursos que se leyeron solo en
+    parte (alguna modalidad falló), para no dar por desaparecidos sus otros grupos."""
     resultado = {}
     errores_lectura = []
     propio = p is None
@@ -562,49 +706,12 @@ def leer_todos_los_cursos(
                 opciones = [o for o in opciones if any(f in o["text"].lower() for f in filtro)]
 
             if frame.locator("#gruposGrid").count():
-                modalidad = frame.locator("#selModalidad")
                 modalidades = _modalidades_a_leer(frame, modalidad_objetivo)
-                timeout_selector = 8000
-                timeout_carga = 15000
-                for modo in modalidades:
-                    if modo and modalidad.input_value() != modo:
-                        frame.locator(SELECTOR_CURSO).evaluate("selector => { selector.value = ''; }")
-                        modalidad.select_option(value=modo, timeout=timeout_selector)
-                        time.sleep(0.8)
-                    for opcion in opciones:
-                        log(f"Consultando {opcion['text']} ({modo or 'grupal'})...")
-                        try:
-                            frame.evaluate("""() => {
-                                const grid = document.querySelector('#gruposGrid');
-                                if (grid) grid.innerHTML = '';
-                                const spinner = document.querySelector('#gruposSpinner');
-                                if (spinner) spinner.classList.remove('d-none');
-                            }""")
-                            frame.select_option(
-                                SELECTOR_CURSO,
-                                value=opcion["value"],
-                                timeout=timeout_selector,
-                            )
-                            _esperar_grupos_nueva_app(frame, timeout_ms=timeout_carga)
-                            lineas_grupo = _lineas_tarjetas_nueva_app(frame, opcion["text"])
-                        except Exception as e:
-                            if not tolerar_errores_carga:
-                                raise
-                            errores_lectura.append(
-                                f"{opcion['text']} ({modo or 'grupal'}): {type(e).__name__}"
-                            )
-                            log(
-                                f"Lectura incompleta: se omite {opcion['text']} "
-                                f"({modo or 'grupal'}): {type(e).__name__}"
-                            )
-                            continue
-                        resultado[opcion["text"]] = _deduplicar_grupos_por_id(
-                            resultado.get(opcion["text"], []) + lineas_grupo
-                        )
-                        log(f"  {opcion['text']} ({modo or 'grupal'}): "
-                            f"{frame.locator('#gruposGrid .card-group-item').count()} tarjetas visibles")
-                        time.sleep(0.3)
-                return resultado, errores_lectura
+                lecturas = _leer_grupos_directo(frame, opciones, modalidades)
+                if lecturas is None:
+                    log("La app no permitió pedirle los datos directamente: se leen las tarjetas.")
+                    lecturas = _leer_grupos_pantalla(frame, opciones, modalidades)
+                return _juntar_lecturas(lecturas, tolerar_errores_carga, incompletos)
 
             if modalidad_objetivo:
                 raise RuntimeError(
@@ -662,15 +769,11 @@ def leer_todos_los_cursos(
 
 # ------------------------------------------------------------------- lógica
 
-def comparar(anterior, actual):
-    """Devuelve {curso: [lineas nuevas]} usando conteo (detecta aunque se repitan textos)."""
+def comparar(anterior, actual, avisados=None):
+    """Devuelve {curso: [lineas nuevas]}: los grupos cuyo código no estaba en la
+    revisión anterior ni entre los ya avisados (`avisados`: {código: datos})."""
     cambios = {}
-    ids_anteriores = {
-        grupo["id"]
-        for lineas in anterior.values()
-        for grupo in parsear_grupos(lineas)
-        if grupo["id"]
-    }
+    ids_anteriores = set(_ids_por_curso(anterior)) | set(avisados or ())
     ids_actuales = set()
     for curso, lineas in actual.items():
         grupos_actuales = parsear_grupos(lineas)
@@ -684,6 +787,21 @@ def comparar(anterior, actual):
         if nuevas_lineas:
             cambios[curso] = nuevas_lineas
     return cambios
+
+
+def _ids_por_curso(cursos):
+    """{código de grupo: curso} de un {curso: [líneas]}."""
+    return {g["id"]: curso for curso, lineas in cursos.items() for g in parsear_grupos(lineas) if g["id"]}
+
+
+def _nombre_y_duracion(cabecera):
+    """'[COL1_LU-12][1210] Roblox Game Developer (COL1_LU-12) · 90 min' -> ('Roblox Game Developer', 90).
+    También entiende el formato de la app antigua: '[COL1_LU-12] Roblox [90 min]'."""
+    dur = re.search(r"\[(\d+)\s*min\]|·\s*(\d+)\s*min", cabecera)
+    nombre = re.sub(r"^(\s*\[[^\]]*\])+", "", cabecera)           # [código][curso]
+    nombre = re.sub(r"\s*(\[\d+\s*min\]|·\s*\d+\s*min)\s*$", "", nombre)  # duración
+    nombre = re.sub(r"\s*\([^)]*\)\s*$", "", nombre).strip()         # (código) repetido
+    return nombre or cabecera, int(dur.group(1) or dur.group(2)) if dur else None
 
 
 def es_codigo_grupo(linea):
@@ -707,9 +825,7 @@ def parsear_grupos(lineas):
             if g and (g["id"] or g["nombre"]):
                 grupos.append(g)
             g = vacio()
-            g["nombre"] = linea.split("]")[1].split("[")[0].strip() or linea
-            dur = re.search(r"\[(\d+)\s*min\]", linea)
-            g["duracion"] = int(dur.group(1)) if dur else None
+            g["nombre"], g["duracion"] = _nombre_y_duracion(linea)
         else:
             if "🕐" in linea:
                 campo, valor = "horario", linea.replace("🕐", "").strip()
@@ -762,6 +878,7 @@ def formatear_grupos(grupos):
 
 MAX_AVISOS_POR_CURSO = 30  # más grupos nuevos de un curso se resumen en un solo aviso
 MARGEN_FALTAS = 3  # revisiones seguidas sin ver un curso antes de descartarlo del estado
+DIAS_RECORDAR_AVISADOS = 45  # días sin ver un grupo avisado antes de olvidarlo
 
 
 def avisar_cambios(cfg, tutor, curso, lineas):
@@ -796,8 +913,10 @@ def revisar(cfg, estado, tutor):
     """Revisa la app con el ID de un tutor y le avisa a él, por sus propios canales."""
     ruta = ruta_estado(tutor)
     log("Revisando...")
+    incompletos = set()
     try:
-        actual, errores_lectura = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"), tutor=tutor)
+        actual, errores_lectura = leer_todos_los_cursos(cfg, kt_id=tutor.get("kt_id"), tutor=tutor,
+                                                        incompletos=incompletos)
         if errores_lectura:
             log(f"Revisión con lecturas incompletas ({len(errores_lectura)}): {', '.join(errores_lectura[:6])}")
     except RuntimeError as e:
@@ -823,31 +942,50 @@ def revisar(cfg, estado, tutor):
     anterior = estado.get("cursos", {})
     faltas = estado.get("faltas", {})
     ahora = datetime.now(timezone.utc)
+    hoy = ahora.date().isoformat()
+    # Memoria de los grupos ya avisados: un grupo que la app deja de mostrar un rato
+    # (lectura fallida, alguien lo tomó y lo soltó...) y vuelve no se avisa otra vez.
+    # Un estado de antes de existir esta memoria la crea con lo que ya tenía guardado.
+    avisados = estado.get("avisados")
+    if avisados is None:
+        avisados = {gid: {"curso": c, "desde": None, "visto": hoy} for gid, c in _ids_por_curso(anterior).items()}
     pendientes = {}  # curso -> líneas que no se pudieron avisar (se reintentan)
-    if not anterior:
+    if not anterior and not avisados:
         log(f"Primera revisión: guardada línea base de {len(actual)} cursos (sin notificar).")
+        for gid, c in _ids_por_curso(actual).items():
+            avisados[gid] = {"curso": c, "desde": None, "visto": hoy}
     else:
-        cambios = comparar(anterior, actual)
+        cambios = comparar(anterior, actual, avisados)
         for curso, lineas in cambios.items():
-            # Para las estadísticas: cuándo se detectó cada grupo (no depende de si
-            # el aviso se pudo enviar, así no se pierde ni se duplica con reintentos)
-            registrar_nuevos(tutor, ahora, curso, [g["id"] for g in parsear_grupos(lineas) if g["id"]])
             # Lo que no se pudo avisar no se da por visto: se reintenta después
             pendientes[curso] = avisar_cambios(cfg, tutor, curso, lineas)
+            fallidos = {g["id"] for g in parsear_grupos(pendientes[curso])}
+            for g in parsear_grupos(lineas):
+                if g["id"] not in fallidos:
+                    # "desde" también alimenta /estadisticas (cuándo salen los grupos)
+                    avisados[g["id"]] = {"curso": curso, "desde": ahora.isoformat(timespec="seconds"),
+                                         "visto": hoy}
         if not cambios:
             log("Sin novedades.")
+    # "visto" va por día (no por revisión) para que estado.json no cambie a cada rato;
+    # un grupo que lleva DIAS_RECORDAR_AVISADOS días sin aparecer se olvida.
+    for gid in _ids_por_curso(actual):
+        if gid in avisados:
+            avisados[gid]["visto"] = hoy
+    limite = (ahora - timedelta(days=DIAS_RECORDAR_AVISADOS)).date().isoformat()
+    avisados = {gid: e for gid, e in avisados.items() if (e.get("visto") or hoy) >= limite}
 
     # Aviso de "sigo activo" cada N horas: si un día no llega, algo falló.
     heartbeat = leer_fecha(estado.get("ultimo_heartbeat"))
     if heartbeat is None:
         heartbeat = ahora  # empieza a contar desde ahora, sin avisar
     elif (ahora - heartbeat).total_seconds() >= float(cfg["heartbeat_horas"]) * 3600:
-        total = sum(len(v) for v in actual.values())
+        total = len(_ids_por_curso(actual))
         log(f"Heartbeat vencido: último={heartbeat.isoformat(timespec='seconds')}; enviando confirmación.")
         enviado = avisar(
             cfg, tutor,
             "Avisador Kodland: sigo activo",
-            f"Revisando {len(actual)} cursos ({total} líneas visibles ahora).",
+            f"Revisando {len(actual)} cursos ({total} grupos disponibles ahora).",
             prioridad=3,
         )
         log("Heartbeat enviado correctamente." if enviado else "ERROR: no se pudo enviar el heartbeat.")
@@ -860,6 +998,10 @@ def revisar(cfg, estado, tutor):
     # contenido por un error puntual, pero tampoco se acumula información vieja.
     cursos_actualizados = {}
     for curso, lineas in actual.items():
+        if curso in incompletos:
+            # Alguna modalidad de este curso no cargó: sus grupos de antes no se dan
+            # por desaparecidos (si de verdad se fueron, la próxima lectura lo dirá).
+            lineas = _deduplicar_grupos_por_id(lineas + anterior.get(curso, []))
         cursos_actualizados[curso] = quitar_lineas(lineas, pendientes.get(curso, []))
         faltas.pop(curso, None)
     for curso in list(anterior):
@@ -874,7 +1016,7 @@ def revisar(cfg, estado, tutor):
         cursos_actualizados[curso] = anterior[curso]  # se conserva para no re-avisar
     # Sin "ultima_revision": así estado.json solo cambia cuando hay algo nuevo
     # y el repositorio no se llena de commits cada 5 minutos.
-    estado = {"cursos": cursos_actualizados, "vacios": {}, "faltas": faltas,
+    estado = {"cursos": cursos_actualizados, "avisados": avisados, "faltas": faltas,
               "ultimo_heartbeat": heartbeat.isoformat(timespec="seconds")}
     guardar_json(ruta, estado)
     return estado
@@ -1295,8 +1437,10 @@ def _barra(n, maximo, ancho=15):
 
 def estadisticas(tutor):
     """Cuándo suelen publicarse los grupos nuevos: por día de la semana y por
-    franja horaria, con la hora de Colombia."""
-    eventos = cargar_historial(tutor)["nuevos"]
+    franja horaria, con la hora de Colombia. Sale de la memoria de grupos avisados
+    del vigilante (los de la línea base no tienen fecha y no cuentan)."""
+    avisados = estado_actual(tutor).get("avisados") or {}
+    eventos = [e["desde"] for e in avisados.values() if e.get("desde")]
     if len(eventos) < 5:
         return ("Todavía no tengo suficientes datos (llevo " + str(len(eventos)) + " grupos vistos). "
                 "Vuelve a intentarlo en unos días; voy guardando cada grupo nuevo que aparece.")
@@ -1304,7 +1448,7 @@ def estadisticas(tutor):
     dias, horas = Counter(), Counter()
     fechas = []
     for e in eventos:
-        f = leer_fecha(e["fecha"])
+        f = leer_fecha(e)
         if f is None:
             continue
         f = f.astimezone(timezone(timedelta(hours=-5)))
@@ -1408,7 +1552,8 @@ def enviar_todos(cfg, tutor, solo_contar=False, calientes=None, modalidad_objeti
     titulo = "📋 Lista completa de grupos 1-1 enviada" if modalidad_objetivo == "individual" else "📋 Lista completa enviada"
     nota_errores = ""
     if errores_lectura:
-        nota_errores = f"\n\n⚠️ {len(errores_lectura)} consulta(s) no respondieron a tiempo por lentitud de la app."
+        nota_errores = (f"\n\n⚠️ {len(errores_lectura)} consulta(s) no se pudieron leer: "
+                        + "; ".join(errores_lectura[:3]))
     nota_limite = ""
     if limite is not None and len(lista) > limite:
         nota_limite = (f"\n\nTe muestro los {len(mostrar)} primeros (de {len(lista)}). "
@@ -1528,7 +1673,8 @@ def comando_nuevos(cfg, tutor, calientes):
             tutor=tutor,
             tolerar_errores_carga=True,
         )
-        anterior = estado_actual(tutor).get("cursos", {})
+        guardado = estado_actual(tutor)
+        anterior = guardado.get("cursos", {})
         if not anterior:
             avisar(
                 cfg,
@@ -1539,7 +1685,7 @@ def comando_nuevos(cfg, tutor, calientes):
             )
             return
 
-        cambios = comparar(anterior, actual)
+        cambios = comparar(anterior, actual, guardado.get("avisados"))
         nuevos, vistos = [], set()
         for curso, lineas in cambios.items():
             for grupo in parsear_grupos(lineas):

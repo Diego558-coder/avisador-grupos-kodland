@@ -16,10 +16,11 @@ permissions:
 
 concurrency:
   group: bot-kodland
-  # true = una ejecución nueva cancela la anterior en vez de encolarse detrás.
-  # Así, al re-ejecutar a mano, el código nuevo entra al instante y no se acumulan
-  # ejecuciones en espera (el cron por hora y el encadenado mantienen vivo el bot).
-  cancel-in-progress: true
+  # Solo una ejecución lanzada A MANO cancela la que está corriendo (así el código
+  # nuevo entra al instante). El cron de respaldo y la cadena automática esperan su
+  # turno: antes el cron cortaba el bot cada pocas horas, incluso a mitad de una
+  # postulación.
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' && github.actor != 'github-actions[bot]' }}
 
 jobs:
   bot:

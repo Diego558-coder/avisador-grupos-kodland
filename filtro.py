@@ -139,7 +139,8 @@ def _horario(g):
 
 def coincide(g, curso, f):
     """True si el grupo cumple el filtro, False si no, None si no se puede saber (sin hora)."""
-    palabras_ok = all(p in _norm(curso + " " + (g.get("nombre") or "")) for p in f.palabras)
+    texto = " ".join((curso, g.get("nombre") or "", g.get("id") or ""))
+    palabras_ok = all(p in _norm(texto) for p in f.palabras)
     if not palabras_ok:
         return False
     if not f.dias and f.ini is None:

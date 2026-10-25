@@ -15,10 +15,11 @@ permissions:
 
 concurrency:
   group: avisador-kodland
-  # true = una ejecución nueva cancela la anterior en vez de encolarse detrás.
-  # Así, al re-ejecutar a mano, el código nuevo entra al instante y no se acumulan
-  # ejecuciones en espera (el cron por hora y el encadenado mantienen vivo el bot).
-  cancel-in-progress: true
+  # Solo una ejecución lanzada A MANO cancela la que está corriendo (así el código
+  # nuevo entra al instante). El cron de respaldo y la cadena automática esperan su
+  # turno: antes el cron cancelaba la ejecución en curso cada pocas horas y podía
+  # cortarla entre avisar y guardar el estado, y esos grupos se volvían a avisar.
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' && github.actor != 'github-actions[bot]' }}
 
 jobs:
   revisar:
@@ -77,7 +78,12 @@ jobs:
             git add estado*.json
             if ! git diff --cached --quiet; then
               git commit -q -m "Actualiza estado [skip ci]"
-              git pull -q --rebase && git push -q || echo "No se pudo guardar estado.json"
+              # -X theirs: si choca con otro cambio de estado, gana el recién calculado.
+              # Si aun así falla, se deshace el rebase para que la próxima vuelta funcione.
+              git pull -q --rebase -X theirs && git push -q || {
+                git rebase --abort 2>/dev/null || true
+                echo "No se pudo guardar estado.json"
+              }
             fi
             # Si Telegram falla, cortamos para que la ejecución quede en rojo y se note
             if [ $FALLO = 1 ]; then exit 1; fi
