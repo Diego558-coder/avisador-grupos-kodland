@@ -506,11 +506,27 @@ def _leer_grupos_pantalla(frame, opciones, modalidades, timeout_carga_ms=15000):
     lecturas = []
     modalidad = frame.locator("#selModalidad")
     for modo in modalidades:
+        funcion = "getDisponiblesIND" if modo == "individual" else "getDisponibles"
+        existe = frame.evaluate(
+            "nombre => { try { return typeof google.script.run[nombre] === 'function'; }"
+            " catch (e) { return null; } }", funcion)
+        if existe is False:
+            # Sin esa función la página se queda "cargando" para siempre en cada curso.
+            lecturas += [{"curso": o["text"], "modo": modo, "error": f"la app no tiene {funcion}"}
+                         for o in opciones]
+            continue
         if modo and modalidad.input_value() != modo:
             frame.locator(SELECTOR_CURSO).evaluate("selector => { selector.value = ''; }")
             modalidad.select_option(value=modo, timeout=8000)
             time.sleep(0.8)
-        for opcion in opciones:
+        for i, opcion in enumerate(opciones):
+            del_modo = [l for l in lecturas if l["modo"] == modo]
+            if len(del_modo) >= 2 and all("error" in l for l in del_modo):
+                # Los primeros cursos fallaron todos: la modalidad no responde ahora y
+                # seguir costaría ~45 s por curso. Se reintenta en la próxima revisión.
+                lecturas += [{"curso": o["text"], "modo": modo, "error": "la modalidad no respondió"}
+                             for o in opciones[i:]]
+                break
             log(f"Consultando {opcion['text']} ({modo or 'grupal'})...")
             try:
                 frame.evaluate("""() => {
@@ -876,23 +892,46 @@ def formatear_grupos(grupos):
     return "\n".join(resultado)
 
 
-MAX_AVISOS_POR_CURSO = 30  # más grupos nuevos de un curso se resumen en un solo aviso
+MAX_AVISOS_POR_CURSO = 60  # más grupos nuevos de un curso van en resúmenes de 10
 MARGEN_FALTAS = 3  # revisiones seguidas sin ver un curso antes de descartarlo del estado
 DIAS_RECORDAR_AVISADOS = 45  # días sin ver un grupo avisado antes de olvidarlo
+PAUSA_ENTRE_AVISOS = 1.0  # Telegram admite ~1 mensaje por segundo en un mismo chat
+_ultimo_aviso = 0.0
+
+
+def _turno_telegram():
+    """Espacia los avisos seguidos: mandados de golpe, Telegram los frena (error 429)."""
+    global _ultimo_aviso
+    espera = _ultimo_aviso + PAUSA_ENTRE_AVISOS - time.time()
+    if espera > 0:
+        time.sleep(espera)
+    _ultimo_aviso = time.time()
 
 
 def avisar_cambios(cfg, tutor, curso, lineas):
     """Un aviso por grupo nuevo, cada uno con su botón. Devuelve las líneas que
     NO se pudieron avisar, para que se reintenten en la próxima revisión."""
     grupos = parsear_grupos(lineas)
-    # Hasta MAX_AVISOS_POR_CURSO grupos nuevos de un curso se avisan uno por uno (cada
-    # uno con su botón); si son más, un solo resumen del curso para no inundar el chat.
-    if not grupos or len(grupos) > MAX_AVISOS_POR_CURSO or any(not g["id"] for g in grupos):
+    if not grupos or any(not g["id"] for g in grupos):
+        # Sin código de grupo (app antigua) no hay botón posible: un solo resumen
         cuerpo = formatear_grupos(grupos) or "\n".join(lineas[:15])
+        _turno_telegram()
         ok = avisar(cfg, tutor, f"🆕 Grupos nuevos: {curso}", cuerpo)
         return [] if ok else list(lineas)
     fallidas = []
+    if len(grupos) > MAX_AVISOS_POR_CURSO:
+        # Un lote enorme de un curso: resúmenes de 10 que listan TODOS los grupos
+        # (ninguno queda escondido en un "… y N más") sin inundar el chat.
+        for i in range(0, len(grupos), 10):
+            parte = grupos[i:i + 10]
+            _turno_telegram()
+            titulo = f"🆕 Grupos nuevos: {curso} ({i + 1}-{i + len(parte)} de {len(grupos)})"
+            cuerpo = formatear_grupos(parte) + "\nPostúlate desde la app o búscalos con /grupos."
+            if not avisar(cfg, tutor, titulo, cuerpo):
+                fallidas.extend(l for g in parte for l in g["lineas"])
+        return fallidas
     for g in grupos:
+        _turno_telegram()
         ok = avisar(cfg, tutor, f"🆕 {curso}", formatear_grupo(g), grupo=(curso, g["id"]))
         if not ok:
             fallidas.extend(g["lineas"])

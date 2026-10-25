@@ -37,20 +37,18 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
-      - name: Cachear navegador de Playwright
-        uses: actions/cache@v4
-        id: cache-playwright
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
-
-      - name: Instalar Chromium (Playwright)
-        if: steps.cache-playwright.outputs.cache-hit != 'true'
-        run: python -m playwright install --with-deps chromium
-
-      - name: Instalar solo dependencias del sistema (si el navegador ya está en caché)
-        if: steps.cache-playwright.outputs.cache-hit == 'true'
-        run: python -m playwright install-deps chromium
+      # Usa el Chrome que ya trae el servidor de GitHub (como el bot): instalar el
+      # Chromium de Playwright y sus librerías tardaba hasta ~4 min en cada arranque,
+      # y mientras tanto no se revisaba nada. Si el servidor no trajera Chrome, se
+      # instala Chromium como antes.
+      - name: Preparar navegador
+        run: |
+          if [ -x /opt/google/chrome/chrome ]; then
+            /opt/google/chrome/chrome --version
+            echo "PW_CANAL=chrome" >> "$GITHUB_ENV"
+          else
+            python -m playwright install --with-deps chromium
+          fi
 
       # Solo cuando lo lanzas tú a mano (no en la cadena automática): confirma
       # que Telegram recibe mensajes desde GitHub. Si falla, la ejecución queda en rojo.

@@ -1,7 +1,8 @@
+import random
 import sys
 import types
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 # Las pruebas cubren lógica pura y no abren un navegador. Permiten ejecutarse
 # también en una instalación local que aún no tenga Playwright.
@@ -141,7 +142,8 @@ def revisiones(estado, lecturas, avisar_ok=True):
         leer = lectura if callable(lectura) else (lambda *a, _l=lectura, **kw: (_l, []))
         with patch("avisador.leer_todos_los_cursos", side_effect=leer), \
              patch("avisador.guardar_json"), patch("avisador.ruta_estado"), \
-             patch("avisador.avisar", side_effect=avisar):
+             patch("avisador.avisar", side_effect=avisar), \
+             patch("avisador.PAUSA_ENTRE_AVISOS", 0):
             estado = avisador.revisar(CFG, estado, TUTOR)
     return estado, avisos
 
@@ -216,6 +218,112 @@ class AvisadosTests(unittest.TestCase):
         self.assertIn("sábado", texto)  # 15:00 UTC = 10:00 en Colombia, sábado
 
 
+CURSOS_SIM = [
+    "Python LVL1", "Unity Game Developer", "Roblox Game Developer", "Python LVL2", "Web Design",
+    "Roblox Game Developer Lvl 2", "Minecraft", "Minecraft lv 2", "Minecraft SubCourse",
+    "Code & Game lvl 2", "Code & Game: LVL3", "Minecraft Craftforge Beginner",
+    "Minecraft Craftforge Intermediate",
+]
+DIAS_SIM = [("Lunes", "LU"), ("Martes", "MA"), ("Miércoles", "MI"), ("Jueves", "JU"),
+            ("Viernes", "VI"), ("Sábado", "SA"), ("Domingo", "DO")]
+
+
+def grupo_sim(n, curso):
+    """Las líneas del grupo n.º n con el formato real de la app nueva."""
+    dia, abrev = DIAS_SIM[n % 7]
+    hora = 8 + n % 12
+    gid = f"{'PRM_' if n % 5 == 0 else ''}COL{20000 + n}_{abrev}-{hora}"
+    return [f"[{gid}][{1200 + CURSOS_SIM.index(curso)}] {curso} ({gid}) · {90 if n % 4 else 60} min",
+            f"🕐 {dia} {hora}h COL ({hora + 2}h ARG)", f"📅 2026-11-{1 + n % 28:02d} {hora}:00", f"🏷️ {gid}"]
+
+
+def codigo_sim(n):
+    return grupo_sim(n, CURSOS_SIM[0])[-1].replace("🏷️", "").strip()
+
+
+class SimulacionTests(unittest.TestCase):
+    def test_200_grupos_y_36_nuevos_con_fallas_de_lectura(self):
+        azar = random.Random(36)
+        con_grupos = [c for c in CURSOS_SIM if c not in ("Minecraft", "Minecraft lv 2", "Minecraft SubCourse")]
+        verdad = {c: [] for c in CURSOS_SIM}  # lo que la app tiene de verdad: curso -> [n.º de grupo]
+        curso_de = {}
+        for n in range(200):
+            curso_de[n] = azar.choice(con_grupos)
+            verdad[curso_de[n]].append(n)
+
+        def lectura(con_fallas):
+            """Lo que lee el bot: la verdad, más las fallas que se ven en la app real."""
+            visibles = {c: list(ns) for c, ns in verdad.items()}
+            a_medias = set()
+            if con_fallas:
+                todos = [(c, n) for c, ns in visibles.items() for n in ns]
+                for c, n in azar.sample(todos, 20):          # desaparecen un rato
+                    visibles[c].remove(n)
+                error, vacio, parcial, cruzado = azar.sample(con_grupos, 4)
+                del visibles[error]                           # el curso no cargó
+                visibles[vacio] = []                          # la app lo dio vacío un momento
+                visibles[parcial] = visibles[parcial][::2]    # una modalidad no cargó
+                a_medias.add(parcial)
+                if visibles[cruzado]:                         # grupo leído bajo otro curso
+                    visibles[next(c for c in visibles if c != cruzado)].append(visibles[cruzado].pop())
+            leido = {c: [l for n in ns for l in grupo_sim(n, curso_de[n])] for c, ns in visibles.items()}
+
+            def leer(*args, incompletos=None, **kwargs):
+                if incompletos is not None:
+                    incompletos.update(a_medias)
+                return leido, []
+            return leer
+
+        estado, avisos = revisiones({}, [lectura(False)])
+        self.assertEqual(avisos, [])  # primera revisión: línea base, sin avisar
+        self.assertEqual(len(estado["avisados"]), 200)
+
+        nuevos, siguiente, todos_los_avisos = [], 200, []
+        for ronda, cuantos in enumerate([12, 10, 8, 6, 0, 0, 0, 0]):  # 36 nuevos en 4 rondas
+            for _ in range(cuantos):
+                curso_de[siguiente] = azar.choice(CURSOS_SIM)
+                verdad[curso_de[siguiente]].append(siguiente)
+                nuevos.append(siguiente)
+                siguiente += 1
+            for c in azar.sample([c for c in con_grupos if verdad[c] and verdad[c][0] < 200], 2):
+                verdad[c].pop(0)  # otro tutor toma un grupo viejo: desaparece para siempre
+            estado, avisos = revisiones(estado, [lectura(con_fallas=ronda < 6)])
+            todos_los_avisos += avisos
+
+        # Solo los 36 nuevos, cada uno una única vez y con su botón
+        self.assertEqual(len(todos_los_avisos), 36)
+        self.assertEqual(sorted(todos_los_avisos), sorted(codigo_sim(n) for n in nuevos))
+        # Tras dos revisiones limpias, el estado guardado es exactamente lo que hay en la app
+        guardado = {c: {g["id"] for g in avisador.parsear_grupos(l)} for c, l in estado["cursos"].items()}
+        self.assertEqual(guardado, {c: {codigo_sim(n) for n in ns} for c, ns in verdad.items()})
+        self.assertTrue(all(estado["avisados"][codigo_sim(n)]["desde"] for n in nuevos))
+
+    def test_36_nuevos_de_un_mismo_curso_llegan_todos_con_su_boton(self):
+        curso = "Roblox Game Developer"
+        base = [l for n in range(200) for l in grupo_sim(n, curso)]
+        nuevos = [l for n in range(200, 236) for l in grupo_sim(n, curso)]
+        _, avisos = revisiones({}, [{curso: base}, {curso: base + nuevos}, {curso: base + nuevos}])
+        self.assertEqual(avisos, [codigo_sim(n) for n in range(200, 236)])
+
+    def test_lote_enorme_se_resume_sin_esconder_ningun_grupo(self):
+        lineas = [l for n in range(70) for l in grupo_sim(n, "Roblox Game Developer")]
+        cuerpos = []
+        with patch("avisador.avisar", side_effect=lambda cfg, t, titulo, cuerpo, **kw: cuerpos.append(cuerpo) or True), \
+             patch("avisador.PAUSA_ENTRE_AVISOS", 0):
+            fallidas = avisador.avisar_cambios(CFG, TUTOR, "Roblox Game Developer", lineas)
+        self.assertEqual(fallidas, [])
+        self.assertEqual(len(cuerpos), 7)  # resúmenes de 10
+        texto = "\n".join(cuerpos)
+        self.assertTrue(all(codigo_sim(n) in texto for n in range(70)))
+        self.assertNotIn("grupos más", texto)
+
+    def test_avisos_seguidos_se_espacian_para_telegram(self):
+        with patch("avisador.time.sleep") as dormir, patch("avisador.PAUSA_ENTRE_AVISOS", 1.0):
+            avisador._ultimo_aviso = avisador.time.time()
+            avisador._turno_telegram()
+        self.assertGreater(dormir.call_args.args[0], 0.9)
+
+
 class LecturaTests(unittest.TestCase):
     def test_modalidad_que_falla_en_todos_los_cursos_no_deja_cursos_incompletos(self):
         lecturas = [
@@ -242,6 +350,25 @@ class LecturaTests(unittest.TestCase):
         self.assertEqual(incompletos, {"Roblox"})
         self.assertEqual(resultado["Roblox"], GRUPO_B)
         self.assertEqual(errores, ["Roblox (grupal): sin respuesta en 40 s"])
+
+    def test_pantalla_salta_la_modalidad_que_la_app_no_tiene(self):
+        frame = MagicMock()
+        frame.evaluate.return_value = False  # google.script.run.getDisponiblesIND no existe
+        opciones = [{"value": c, "text": c} for c in ("Roblox", "Unity")]
+        lecturas = avisador._leer_grupos_pantalla(frame, opciones, ["individual"])
+        self.assertEqual([l["error"] for l in lecturas], ["la app no tiene getDisponiblesIND"] * 2)
+        frame.select_option.assert_not_called()
+
+    def test_pantalla_deja_de_insistir_si_los_primeros_cursos_fallan(self):
+        frame = MagicMock()
+        frame.evaluate.return_value = None  # no se puede saber si la función existe
+        frame.select_option.side_effect = TimeoutError("la app no responde")
+        opciones = [{"value": f"C{i}", "text": f"C{i}"} for i in range(13)]
+        with patch("avisador.time.sleep"):
+            lecturas = avisador._leer_grupos_pantalla(frame, opciones, [None])
+        self.assertEqual(frame.select_option.call_count, 2)  # no 13 x ~45 s
+        self.assertEqual(len(lecturas), 13)
+        self.assertTrue(all("error" in l for l in lecturas))
 
     def test_lineas_desde_los_datos_del_servidor(self):
         grupos = [
