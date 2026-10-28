@@ -257,6 +257,28 @@
       "📅 2027-01-06 17:00",
       "🏷️ COL14746_MI-17"
     ],
+    "Roblox Game Developer Lvl 2": [
+      "[PRM_COL14554_MI-11][1442] Roblox Game Developer Lvl 2 (PRM_COL14554_MI-11) · 90 min",
+      "🕐 Miércoles 11h COL (13h ARG)",
+      "📅 2026-11-04 11:00",
+      "🏷️ PRM_COL14554_MI-11",
+      "[COL14117_JU-20][1442] Roblox Game Developer Lvl 2 (COL14117_JU-20) · 90 min",
+      "🕐 Jueves 20h COL (22h ARG)",
+      "📅 2026-11-05 20:00",
+      "🏷️ COL14117_JU-20",
+      "[COL14655_MA-18][1442] Roblox Game Developer Lvl 2 (COL14655_MA-18) · 90 min",
+      "🕐 Martes 18h COL (20h ARG)",
+      "📅 2026-11-10 18:00",
+      "🏷️ COL14655_MA-18",
+      "[PRM_COL14640_MA-17][1442] Roblox Game Developer Lvl 2 (PRM_COL14640_MA-17) · 90 min",
+      "🕐 Martes 17h COL (19h ARG)",
+      "📅 2026-11-24 17:00",
+      "🏷️ PRM_COL14640_MA-17",
+      "[COL14736_MI-13][1442] Roblox Game Developer Lvl 2 (COL14736_MI-13) · 90 min",
+      "🕐 Miércoles 13h COL (15h ARG)",
+      "📅 2026-11-25 13:00",
+      "🏷️ COL14736_MI-13"
+    ],
     "Minecraft": [],
     "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
@@ -371,28 +393,6 @@
       "🕐 Jueves 12h COL (14h ARG)",
       "📅 2027-01-14 12:00",
       "🏷️ COL14726_JU-12"
-    ],
-    "Roblox Game Developer Lvl 2": [
-      "[PRM_COL14554_MI-11][1442] Roblox Game Developer Lvl 2 (PRM_COL14554_MI-11) · 90 min",
-      "🕐 Miércoles 11h COL (13h ARG)",
-      "📅 2026-11-04 11:00",
-      "🏷️ PRM_COL14554_MI-11",
-      "[COL14117_JU-20][1442] Roblox Game Developer Lvl 2 (COL14117_JU-20) · 90 min",
-      "🕐 Jueves 20h COL (22h ARG)",
-      "📅 2026-11-05 20:00",
-      "🏷️ COL14117_JU-20",
-      "[COL14655_MA-18][1442] Roblox Game Developer Lvl 2 (COL14655_MA-18) · 90 min",
-      "🕐 Martes 18h COL (20h ARG)",
-      "📅 2026-11-10 18:00",
-      "🏷️ COL14655_MA-18",
-      "[PRM_COL14640_MA-17][1442] Roblox Game Developer Lvl 2 (PRM_COL14640_MA-17) · 90 min",
-      "🕐 Martes 17h COL (19h ARG)",
-      "📅 2026-11-24 17:00",
-      "🏷️ PRM_COL14640_MA-17",
-      "[COL14736_MI-13][1442] Roblox Game Developer Lvl 2 (COL14736_MI-13) · 90 min",
-      "🕐 Miércoles 13h COL (15h ARG)",
-      "📅 2026-11-25 13:00",
-      "🏷️ COL14736_MI-13"
     ]
   },
   "avisados": {
@@ -1072,8 +1072,6 @@
       "visto": "2026-10-28"
     }
   },
-  "faltas": {
-    "Roblox Game Developer Lvl 2": 1
-  },
+  "faltas": {},
   "ultimo_heartbeat": "2026-10-28T19:01:13+00:00"
 }
