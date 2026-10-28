@@ -50,10 +50,6 @@
       "🕐 Martes 15h COL (17h ARG)",
       "📅 2026-11-17 15:00",
       "🏷️ COL14738_MA-15",
-      "[PRM_COL14785_MI-18][1209] Unity Game Developer (PRM_COL14785_MI-18) · 90 min",
-      "🕐 Miércoles 18h COL (20h ARG)",
-      "📅 2026-11-18 18:00",
-      "🏷️ PRM_COL14785_MI-18",
       "[COL14737_VI-17][1209] Unity Game Developer (COL14737_VI-17) · 90 min",
       "🕐 Viernes 17h COL (19h ARG)",
       "📅 2026-11-27 17:00",
@@ -353,6 +349,10 @@
       "🕐 Jueves 16h COL (18h ARG)",
       "📅 2026-11-05 16:00",
       "🏷️ COL14601_JU-16",
+      "[COL14629_SA-12][2059] Code & Game: LVL3 (COL14629_SA-12) · 90 min",
+      "🕐 Sábado 12h COL (14h ARG)",
+      "📅 2026-11-07 12:00",
+      "🏷️ COL14629_SA-12",
       "[PRM_COL14787_MI-17][2059] Code & Game: LVL3 (PRM_COL14787_MI-17) · 90 min",
       "🕐 Miércoles 17h COL (19h ARG)",
       "📅 2026-11-11 17:00",
@@ -1149,6 +1149,11 @@
     "PRM_COL14779_SA-10": {
       "curso": "Minecraft Craftforge Intermediate",
       "desde": "2026-10-28T21:13:47+00:00",
+      "visto": "2026-10-28"
+    },
+    "COL14629_SA-12": {
+      "curso": "Code & Game: LVL3",
+      "desde": "2026-10-28T21:17:11+00:00",
       "visto": "2026-10-28"
     }
   },
