@@ -2,10 +2,6 @@
   "cursos": {
     "Python LVL1": [],
     "Unity Game Developer": [
-      "[PRM_COL14560_DO-10][1209] Unity Game Developer (PRM_COL14560_DO-10) · 90 min",
-      "🕐 Domingo 10h COL (12h ARG)",
-      "📅 2026-11-01 10:00",
-      "🏷️ PRM_COL14560_DO-10",
       "[COL14536_LU-17][1209] Unity Game Developer (COL14536_LU-17) · 90 min",
       "🕐 Lunes 17h COL (19h ARG)",
       "📅 2026-11-02 17:00",
@@ -136,6 +132,10 @@
       "🕐 Jueves 19h COL (21h ARG)",
       "📅 2026-11-12 19:00",
       "🏷️ PRM_COL14715_JU-19",
+      "[COL14689_JU-19][1210] Roblox Game Developer (COL14689_JU-19) · 90 min",
+      "🕐 Jueves 19h COL (21h ARG)",
+      "📅 2026-11-12 19:00",
+      "🏷️ COL14689_JU-19",
       "[PRM_COL14716_VI-16][1720] Roblox Game Developer (PRM_COL14716_VI-16) · 60 min",
       "🕐 Viernes 16h COL (18h ARG)",
       "📅 2026-11-13 16:00",
@@ -271,14 +271,14 @@
       "🕐 Miércoles 17h COL (19h ARG)",
       "📅 2026-11-04 17:00",
       "🏷️ PRM_COL14665_MI-17",
-      "[COL14654_SA-8][2060] Code & Game lvl 2 (COL14654_SA-8) · 90 min",
-      "🕐 Sábado 8h COL (10h ARG)",
-      "📅 2026-11-07 8:00",
-      "🏷️ COL14654_SA-8",
       "[PRM_COL14102_SA-8][2060] Code & Game lvl 2 (PRM_COL14102_SA-8) · 90 min",
       "🕐 Sábado 8h COL (10h ARG)",
       "📅 2026-11-07 8:00",
       "🏷️ PRM_COL14102_SA-8",
+      "[COL14654_SA-8][2060] Code & Game lvl 2 (COL14654_SA-8) · 90 min",
+      "🕐 Sábado 8h COL (10h ARG)",
+      "📅 2026-11-07 8:00",
+      "🏷️ COL14654_SA-8",
       "[PRM_COL14720_LU-16][2060] Code & Game lvl 2 (PRM_COL14720_LU-16) · 90 min",
       "🕐 Lunes 16h COL (18h ARG)",
       "📅 2026-11-09 16:00",
@@ -381,6 +381,10 @@
       "🕐 Jueves 17h COL (19h ARG)",
       "📅 2026-11-05 18:00",
       "🏷️ PRM_COL14634_JU-17",
+      "[COL14470_SA-11][2133] Minecraft Craftforge Intermediate (COL14470_SA-11) · 90 min",
+      "🕐 Sábado 11h COL (13h ARG)",
+      "📅 2026-11-07 11:00",
+      "🏷️ COL14470_SA-11",
       "[PRM_COL14780_LU-16][2133] Minecraft Craftforge Intermediate (PRM_COL14780_LU-16) · 90 min",
       "🕐 Lunes 16h COL (18h ARG)",
       "📅 2026-11-09 16:00",
@@ -918,7 +922,7 @@
     "COL14689_JU-19": {
       "curso": "Roblox Game Developer",
       "desde": "2026-10-25T20:07:39+00:00",
-      "visto": "2026-10-28"
+      "visto": "2026-10-30"
     },
     "PRM_COL14715_JU-19": {
       "curso": "Roblox Game Developer",
@@ -1138,6 +1142,11 @@
     "COL14629_SA-12": {
       "curso": "Code & Game: LVL3",
       "desde": "2026-10-28T21:17:11+00:00",
+      "visto": "2026-10-30"
+    },
+    "COL14470_SA-11": {
+      "curso": "Minecraft Craftforge Intermediate",
+      "desde": "2026-10-30T00:39:46+00:00",
       "visto": "2026-10-30"
     }
   },

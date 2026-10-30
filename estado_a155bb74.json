@@ -97,6 +97,10 @@
       "🕐 Jueves 19h COL (21h ARG)",
       "📅 2026-11-12 19:00",
       "🏷️ PRM_COL14715_JU-19",
+      "[COL14689_JU-19][1210] Roblox Game Developer (COL14689_JU-19) · 90 min",
+      "🕐 Jueves 19h COL (21h ARG)",
+      "📅 2026-11-12 19:00",
+      "🏷️ COL14689_JU-19",
       "[PRM_COL14716_VI-16][1720] Roblox Game Developer (PRM_COL14716_VI-16) · 60 min",
       "🕐 Viernes 16h COL (18h ARG)",
       "📅 2026-11-13 16:00",
@@ -721,7 +725,7 @@
     "COL14689_JU-19": {
       "curso": "Roblox Game Developer",
       "desde": "2026-10-25T20:09:07+00:00",
-      "visto": "2026-10-28"
+      "visto": "2026-10-30"
     },
     "PRM_COL14715_JU-19": {
       "curso": "Roblox Game Developer",
