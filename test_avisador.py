@@ -218,6 +218,63 @@ class AvisadosTests(unittest.TestCase):
         self.assertIn("sábado", texto)  # 15:00 UTC = 10:00 en Colombia, sábado
 
 
+def revisiones_con_fallos(estado, lecturas, telegram_ok=True):
+    """Como revisiones(), pero una lectura puede ser una excepción (la app falló).
+    Devuelve (estado, títulos de todos los mensajes que llegaron a Telegram)."""
+    titulos = []
+
+    def avisar(cfg, tutor, titulo, mensaje, prioridad=4, grupo=None):
+        ok = telegram_ok(titulo) if callable(telegram_ok) else telegram_ok
+        if ok:
+            titulos.append(titulo)
+        return ok
+
+    for lectura in lecturas:
+        efecto = lectura if isinstance(lectura, Exception) else [(lectura, [])]
+        with patch("avisador.leer_todos_los_cursos", side_effect=efecto), \
+             patch("avisador.guardar_json"), patch("avisador.ruta_estado"), \
+             patch("avisador.avisar", side_effect=avisar), \
+             patch("avisador.PAUSA_ENTRE_AVISOS", 0):
+            estado = avisador.revisar(CFG, estado, TUTOR)
+    return estado, titulos
+
+
+class FallosTests(unittest.TestCase):
+    LECTURA = {"Roblox Game Developer": GRUPO_A}
+    FALLA = RuntimeError("LOGIN: la app no confirmó el acceso; revisa el ID y la contraseña.")
+
+    def test_falla_pasajera_no_te_avisa(self):
+        estado = {"cursos": self.LECTURA, "avisados": {}}
+        estado, titulos = revisiones_con_fallos(estado, [self.FALLA, self.FALLA, self.LECTURA])
+        self.assertEqual(titulos, [])
+        self.assertNotIn("fallos_seguidos", estado)
+        self.assertNotIn("error_avisado", estado)
+
+    def test_falla_persistente_avisa_una_vez_y_luego_que_se_resolvio(self):
+        estado = {"cursos": self.LECTURA, "avisados": {}}
+        estado, titulos = revisiones_con_fallos(estado, [self.FALLA] * 6 + [self.LECTURA, self.LECTURA])
+        self.assertEqual(titulos, ["Avisador Kodland: problema", "✅ Avisador Kodland: problema resuelto"])
+
+    def test_aviso_de_problema_que_no_llega_se_reintenta(self):
+        intentos = []
+
+        def telegram_ok(titulo):
+            intentos.append(titulo)
+            return len(intentos) > 1  # Telegram tampoco responde la primera vez
+
+        estado = {"cursos": self.LECTURA, "avisados": {}}
+        estado, titulos = revisiones_con_fallos(estado, [self.FALLA] * 5, telegram_ok=telegram_ok)
+        self.assertEqual(titulos, ["Avisador Kodland: problema"])
+        self.assertEqual(len(intentos), 2)
+        self.assertEqual(estado["fallos_seguidos"], 5)
+
+    def test_una_falla_no_pierde_grupos_nuevos(self):
+        estado = {"cursos": self.LECTURA, "avisados": {}}
+        nuevo = {"Roblox Game Developer": GRUPO_A + GRUPO_B}
+        estado, titulos = revisiones_con_fallos(estado, [self.FALLA, nuevo, nuevo])
+        self.assertEqual(titulos, ["🆕 Roblox Game Developer"])
+
+
 CURSOS_SIM = [
     "Python LVL1", "Unity Game Developer", "Roblox Game Developer", "Python LVL2", "Web Design",
     "Roblox Game Developer Lvl 2", "Minecraft", "Minecraft lv 2", "Minecraft SubCourse",

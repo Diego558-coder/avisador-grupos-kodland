@@ -895,6 +895,7 @@ def formatear_grupos(grupos):
 MAX_AVISOS_POR_CURSO = 60  # más grupos nuevos de un curso van en resúmenes de 10
 MARGEN_FALTAS = 3  # revisiones seguidas sin ver un curso antes de descartarlo del estado
 DIAS_RECORDAR_AVISADOS = 45  # días sin ver un grupo avisado antes de olvidarlo
+FALLOS_ANTES_DE_AVISAR = 3  # revisiones fallidas seguidas (~10 min) antes de avisar un problema
 PAUSA_ENTRE_AVISOS = 1.0  # Telegram admite ~1 mensaje por segundo en un mismo chat
 _ultimo_aviso = 0.0
 
@@ -948,6 +949,20 @@ def quitar_lineas(lineas, quitar):
     return resultado
 
 
+def _registrar_fallo(cfg, tutor, estado, ruta, msg):
+    """Una revisión que no pudo leer la app. La app de Kodland falla a ratos y se
+    arregla sola en la revisión siguiente; solo se avisa si falla
+    FALLOS_ANTES_DE_AVISAR veces seguidas, y una sola vez hasta que se resuelva."""
+    estado["fallos_seguidos"] = n = estado.get("fallos_seguidos", 0) + 1
+    log(f"ERROR ({n} seguidos): {msg}")
+    if n >= FALLOS_ANTES_DE_AVISAR and not estado.get("error_avisado"):
+        # Si Telegram no lo recibe, se reintenta en la próxima falla
+        estado["error_avisado"] = avisar(cfg, tutor, "Avisador Kodland: problema",
+                                         f"{msg}\n(falló {n} revisiones seguidas)", prioridad=3)
+    guardar_json(ruta, estado)
+    return estado
+
+
 def revisar(cfg, estado, tutor):
     """Revisa la app con el ID de un tutor y le avisa a él, por sus propios canales."""
     ruta = ruta_estado(tutor)
@@ -963,20 +978,13 @@ def revisar(cfg, estado, tutor):
             msg = "No se pudo entrar a la app de Kodland. Revisa que el ID de tutor siga siendo válido."
         else:
             msg = str(e)
-        log(f"ERROR: {msg}")
-        if not estado.get("error_avisado"):
-            avisar(cfg, tutor, "Avisador Kodland: problema", msg, prioridad=3)
-            estado["error_avisado"] = True
-            guardar_json(ruta, estado)
-        return estado
+        return _registrar_fallo(cfg, tutor, estado, ruta, msg)
     except Exception as e:
-        msg = _error_sin_credenciales(e, tutor, cfg)
-        log(f"ERROR inesperado: {msg}")
-        if not estado.get("error_avisado"):
-            avisar(cfg, tutor, "Avisador Kodland: problema", msg, prioridad=3)
-            estado["error_avisado"] = True
-            guardar_json(ruta, estado)
-        return estado
+        return _registrar_fallo(cfg, tutor, estado, ruta, "inesperado: " + _error_sin_credenciales(e, tutor, cfg))
+
+    if estado.get("error_avisado"):
+        avisar(cfg, tutor, "✅ Avisador Kodland: problema resuelto",
+               "La app de Kodland vuelve a responder; sigo revisando normalmente.", prioridad=2)
 
     anterior = estado.get("cursos", {})
     faltas = estado.get("faltas", {})
