@@ -983,5 +983,6 @@
     }
   },
   "faltas": {},
-  "ultimo_heartbeat": "2026-11-10T09:35:27+00:00"
+  "ultimo_heartbeat": "2026-11-10T09:35:27+00:00",
+  "fallos_seguidos": 1
 }
