@@ -118,32 +118,6 @@
     "Minecraft": [],
     "Minecraft lv 2": [],
     "Minecraft SubCourse": [],
-    "Code & Game: LVL3": [
-      "[COL14628_VI-20][2059] Code & Game: LVL3 (COL14628_VI-20) · 90 min",
-      "🕐 Viernes 20h COL (22h ARG)",
-      "📅 2026-11-13 20:00",
-      "🏷️ COL14628_VI-20",
-      "[COL14757_MI-17][2059] Code & Game: LVL3 (COL14757_MI-17) · 90 min",
-      "🕐 Miércoles 17h COL (19h ARG)",
-      "📅 2026-11-18 17:00",
-      "🏷️ COL14757_MI-17",
-      "[PRM_COL14706_JU-12][2059] Code & Game: LVL3 (PRM_COL14706_JU-12) · 90 min",
-      "🕐 Jueves 12h COL (14h ARG)",
-      "📅 2026-11-19 12:00",
-      "🏷️ PRM_COL14706_JU-12",
-      "[COL14755_VI-14][2059] Code & Game: LVL3 (COL14755_VI-14) · 90 min",
-      "🕐 Viernes 14h COL (16h ARG)",
-      "📅 2026-11-27 14:00",
-      "🏷️ COL14755_VI-14",
-      "[COL14620_MA-19][2059] Code & Game: LVL3 (COL14620_MA-19) · 90 min",
-      "🕐 Martes 19h COL (21h ARG)",
-      "📅 2026-12-01 19:00",
-      "🏷️ COL14620_MA-19",
-      "[COL14756_MA-15][2059] Code & Game: LVL3 (COL14756_MA-15) · 90 min",
-      "🕐 Martes 15h COL (17h ARG)",
-      "📅 2026-12-08 15:00",
-      "🏷️ COL14756_MA-15"
-    ],
     "Code & Game lvl 2": [
       "[COL14652_VI-16][2060] Code & Game lvl 2 (COL14652_VI-16) · 90 min",
       "🕐 Viernes 16h COL (18h ARG)",
@@ -173,6 +147,32 @@
       "🕐 Miércoles 17h COL (19h ARG)",
       "📅 2026-12-09 17:00",
       "🏷️ PRM_COL14782_MI-17"
+    ],
+    "Code & Game: LVL3": [
+      "[COL14628_VI-20][2059] Code & Game: LVL3 (COL14628_VI-20) · 90 min",
+      "🕐 Viernes 20h COL (22h ARG)",
+      "📅 2026-11-13 20:00",
+      "🏷️ COL14628_VI-20",
+      "[COL14757_MI-17][2059] Code & Game: LVL3 (COL14757_MI-17) · 90 min",
+      "🕐 Miércoles 17h COL (19h ARG)",
+      "📅 2026-11-18 17:00",
+      "🏷️ COL14757_MI-17",
+      "[PRM_COL14706_JU-12][2059] Code & Game: LVL3 (PRM_COL14706_JU-12) · 90 min",
+      "🕐 Jueves 12h COL (14h ARG)",
+      "📅 2026-11-19 12:00",
+      "🏷️ PRM_COL14706_JU-12",
+      "[COL14755_VI-14][2059] Code & Game: LVL3 (COL14755_VI-14) · 90 min",
+      "🕐 Viernes 14h COL (16h ARG)",
+      "📅 2026-11-27 14:00",
+      "🏷️ COL14755_VI-14",
+      "[COL14620_MA-19][2059] Code & Game: LVL3 (COL14620_MA-19) · 90 min",
+      "🕐 Martes 19h COL (21h ARG)",
+      "📅 2026-12-01 19:00",
+      "🏷️ COL14620_MA-19",
+      "[COL14756_MA-15][2059] Code & Game: LVL3 (COL14756_MA-15) · 90 min",
+      "🕐 Martes 15h COL (17h ARG)",
+      "📅 2026-12-08 15:00",
+      "🏷️ COL14756_MA-15"
     ],
     "Minecraft Craftforge Beginner": [
       "[PRM_COL14667_SA-9][2124] Minecraft Craftforge Beginner (PRM_COL14667_SA-9) · 60 min",
@@ -942,10 +942,6 @@
       "visto": "2026-11-06"
     }
   },
-  "faltas": {
-    "Code & Game lvl 2": 2,
-    "Minecraft Craftforge Beginner": 2,
-    "Minecraft Craftforge Intermediate": 2
-  },
+  "faltas": {},
   "ultimo_heartbeat": "2026-11-12T09:41:36+00:00"
 }
