@@ -52,39 +52,6 @@
       "📅 2026-11-25 13:00",
       "🏷️ COL14736_MI-13"
     ],
-    "Minecraft": [],
-    "Minecraft lv 2": [],
-    "Minecraft SubCourse": [],
-    "Code & Game lvl 2": [
-      "[COL14652_VI-16][2060] Code & Game lvl 2 (COL14652_VI-16) · 90 min",
-      "🕐 Viernes 16h COL (18h ARG)",
-      "📅 2026-11-13 16:00",
-      "🏷️ COL14652_VI-16",
-      "[PRM_COL14719_SA-11][2060] Code & Game lvl 2 (PRM_COL14719_SA-11) · 90 min",
-      "🕐 Sábado 11h COL (13h ARG)",
-      "📅 2026-11-14 11:00",
-      "🏷️ PRM_COL14719_SA-11",
-      "[COL14733_LU-11][2060] Code & Game lvl 2 (COL14733_LU-11) · 90 min",
-      "🕐 Lunes 11h COL (13h ARG)",
-      "📅 2026-11-16 11:00",
-      "🏷️ COL14733_LU-11",
-      "[COL14691_LU-13][2060] Code & Game lvl 2 (COL14691_LU-13) · 90 min",
-      "🕐 Lunes 13h COL (15h ARG)",
-      "📅 2026-11-16 13:30",
-      "🏷️ COL14691_LU-13",
-      "[COL14734_VI-12][2060] Code & Game lvl 2 (COL14734_VI-12) · 90 min",
-      "🕐 Viernes 12h COL (14h ARG)",
-      "📅 2026-11-20 12:00",
-      "🏷️ COL14734_VI-12",
-      "[COL14732_SA-17][2060] Code & Game lvl 2 (COL14732_SA-17) · 90 min",
-      "🕐 Sábado 17h COL (19h ARG)",
-      "📅 2026-11-21 17:00",
-      "🏷️ COL14732_SA-17",
-      "[PRM_COL14782_MI-17][2060] Code & Game lvl 2 (PRM_COL14782_MI-17) · 90 min",
-      "🕐 Miércoles 17h COL (19h ARG)",
-      "📅 2026-12-09 17:00",
-      "🏷️ PRM_COL14782_MI-17"
-    ],
     "Code & Game: LVL3": [
       "[COL14628_VI-20][2059] Code & Game: LVL3 (COL14628_VI-20) · 90 min",
       "🕐 Viernes 20h COL (22h ARG)",
@@ -130,6 +97,39 @@
       "🕐 Jueves 12h COL (14h ARG)",
       "📅 2027-01-14 12:00",
       "🏷️ COL14726_JU-12"
+    ],
+    "Minecraft": [],
+    "Minecraft lv 2": [],
+    "Minecraft SubCourse": [],
+    "Code & Game lvl 2": [
+      "[COL14652_VI-16][2060] Code & Game lvl 2 (COL14652_VI-16) · 90 min",
+      "🕐 Viernes 16h COL (18h ARG)",
+      "📅 2026-11-13 16:00",
+      "🏷️ COL14652_VI-16",
+      "[PRM_COL14719_SA-11][2060] Code & Game lvl 2 (PRM_COL14719_SA-11) · 90 min",
+      "🕐 Sábado 11h COL (13h ARG)",
+      "📅 2026-11-14 11:00",
+      "🏷️ PRM_COL14719_SA-11",
+      "[COL14733_LU-11][2060] Code & Game lvl 2 (COL14733_LU-11) · 90 min",
+      "🕐 Lunes 11h COL (13h ARG)",
+      "📅 2026-11-16 11:00",
+      "🏷️ COL14733_LU-11",
+      "[COL14691_LU-13][2060] Code & Game lvl 2 (COL14691_LU-13) · 90 min",
+      "🕐 Lunes 13h COL (15h ARG)",
+      "📅 2026-11-16 13:30",
+      "🏷️ COL14691_LU-13",
+      "[COL14734_VI-12][2060] Code & Game lvl 2 (COL14734_VI-12) · 90 min",
+      "🕐 Viernes 12h COL (14h ARG)",
+      "📅 2026-11-20 12:00",
+      "🏷️ COL14734_VI-12",
+      "[COL14732_SA-17][2060] Code & Game lvl 2 (COL14732_SA-17) · 90 min",
+      "🕐 Sábado 17h COL (19h ARG)",
+      "📅 2026-11-21 17:00",
+      "🏷️ COL14732_SA-17",
+      "[PRM_COL14782_MI-17][2060] Code & Game lvl 2 (PRM_COL14782_MI-17) · 90 min",
+      "🕐 Miércoles 17h COL (19h ARG)",
+      "📅 2026-12-09 17:00",
+      "🏷️ PRM_COL14782_MI-17"
     ]
   },
   "avisados": {
@@ -719,6 +719,11 @@
       "visto": "2026-11-12"
     }
   },
-  "faltas": {},
+  "faltas": {
+    "Minecraft": 1,
+    "Minecraft lv 2": 1,
+    "Minecraft SubCourse": 1,
+    "Code & Game lvl 2": 1
+  },
   "ultimo_heartbeat": "2026-11-12T09:42:32+00:00"
 }
