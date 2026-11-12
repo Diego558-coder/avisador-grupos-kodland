@@ -174,16 +174,6 @@
       "📅 2026-12-08 15:00",
       "🏷️ COL14756_MA-15"
     ],
-    "Minecraft Craftforge Intermediate": [
-      "[PRM_COL14779_SA-10][2133] Minecraft Craftforge Intermediate (PRM_COL14779_SA-10) · 90 min",
-      "🕐 Sábado 10h COL (12h ARG)",
-      "📅 2026-11-14 10:00",
-      "🏷️ PRM_COL14779_SA-10",
-      "[COL14726_JU-12][2133] Minecraft Craftforge Intermediate (COL14726_JU-12) · 90 min",
-      "🕐 Jueves 12h COL (14h ARG)",
-      "📅 2027-01-14 12:00",
-      "🏷️ COL14726_JU-12"
-    ],
     "Minecraft Craftforge Beginner": [
       "[PRM_COL14667_SA-9][2124] Minecraft Craftforge Beginner (PRM_COL14667_SA-9) · 60 min",
       "🕐 Sábado 9h COL (11h ARG)",
@@ -193,6 +183,16 @@
       "🕐 Martes 18h COL (20h ARG)",
       "📅 2026-11-17 18:00",
       "🏷️ COL14772_MA-18"
+    ],
+    "Minecraft Craftforge Intermediate": [
+      "[PRM_COL14779_SA-10][2133] Minecraft Craftforge Intermediate (PRM_COL14779_SA-10) · 90 min",
+      "🕐 Sábado 10h COL (12h ARG)",
+      "📅 2026-11-14 10:00",
+      "🏷️ PRM_COL14779_SA-10",
+      "[COL14726_JU-12][2133] Minecraft Craftforge Intermediate (COL14726_JU-12) · 90 min",
+      "🕐 Jueves 12h COL (14h ARG)",
+      "📅 2027-01-14 12:00",
+      "🏷️ COL14726_JU-12"
     ]
   },
   "avisados": {
@@ -942,9 +942,6 @@
       "visto": "2026-11-06"
     }
   },
-  "faltas": {
-    "Minecraft Craftforge Beginner": 1
-  },
-  "ultimo_heartbeat": "2026-11-11T21:39:55+00:00",
-  "fallos_seguidos": 1
+  "faltas": {},
+  "ultimo_heartbeat": "2026-11-11T21:39:55+00:00"
 }
