@@ -722,5 +722,6 @@
   "faltas": {
     "Code & Game: LVL3": 1
   },
-  "ultimo_heartbeat": "2026-11-11T21:40:42+00:00"
+  "ultimo_heartbeat": "2026-11-11T21:40:42+00:00",
+  "fallos_seguidos": 1
 }
