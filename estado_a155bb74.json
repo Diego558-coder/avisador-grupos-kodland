@@ -5,6 +5,10 @@
       "🕐 Jueves 13h COL (15h ARG)",
       "📅 2026-11-12 13:00",
       "🏷️ COL14671_JU-13",
+      "[COL14466_JU-17][1720] Roblox Game Developer (COL14466_JU-17) · 60 min",
+      "🕐 Jueves 17h COL (19h ARG)",
+      "📅 2026-11-12 17:00",
+      "🏷️ COL14466_JU-17",
       "[PRM_COL14715_JU-19][1720] Roblox Game Developer (PRM_COL14715_JU-19) · 60 min",
       "🕐 Jueves 19h COL (21h ARG)",
       "📅 2026-11-12 19:00",
@@ -728,6 +732,11 @@
       "curso": "Minecraft Craftforge Intermediate",
       "desde": "2026-10-30T00:37:39+00:00",
       "visto": "2026-11-06"
+    },
+    "COL14466_JU-17": {
+      "curso": "Roblox Game Developer",
+      "desde": "2026-11-12T00:46:09+00:00",
+      "visto": "2026-11-12"
     }
   },
   "faltas": {},
