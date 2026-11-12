@@ -1,28 +1,6 @@
 {
   "cursos": {
     "Python LVL1": [],
-    "Unity Game Developer": [
-      "[PRM_COL14702_SA-10][1209] Unity Game Developer (PRM_COL14702_SA-10) · 90 min",
-      "🕐 Sábado 10h COL (12h ARG)",
-      "📅 2026-11-14 10:00",
-      "🏷️ PRM_COL14702_SA-10",
-      "[COL14738_MA-15][1209] Unity Game Developer (COL14738_MA-15) · 90 min",
-      "🕐 Martes 15h COL (17h ARG)",
-      "📅 2026-11-17 15:00",
-      "🏷️ COL14738_MA-15",
-      "[COL14737_VI-17][1209] Unity Game Developer (COL14737_VI-17) · 90 min",
-      "🕐 Viernes 17h COL (19h ARG)",
-      "📅 2026-11-27 17:00",
-      "🏷️ COL14737_VI-17",
-      "[COL14740_JU-17][1209] Unity Game Developer (COL14740_JU-17) · 90 min",
-      "🕐 Jueves 17h COL (19h ARG)",
-      "📅 2027-01-07 17:00",
-      "🏷️ COL14740_JU-17",
-      "[COL14739_MA-13][1209] Unity Game Developer (COL14739_MA-13) · 90 min",
-      "🕐 Martes 13h COL (15h ARG)",
-      "📅 2027-03-02 13:00",
-      "🏷️ COL14739_MA-13"
-    ],
     "Roblox Game Developer": [
       "[COL14671_JU-13][1210] Roblox Game Developer (COL14671_JU-13) · 90 min",
       "🕐 Jueves 13h COL (15h ARG)",
@@ -193,6 +171,28 @@
       "🕐 Jueves 12h COL (14h ARG)",
       "📅 2027-01-14 12:00",
       "🏷️ COL14726_JU-12"
+    ],
+    "Unity Game Developer": [
+      "[PRM_COL14702_SA-10][1209] Unity Game Developer (PRM_COL14702_SA-10) · 90 min",
+      "🕐 Sábado 10h COL (12h ARG)",
+      "📅 2026-11-14 10:00",
+      "🏷️ PRM_COL14702_SA-10",
+      "[COL14738_MA-15][1209] Unity Game Developer (COL14738_MA-15) · 90 min",
+      "🕐 Martes 15h COL (17h ARG)",
+      "📅 2026-11-17 15:00",
+      "🏷️ COL14738_MA-15",
+      "[COL14737_VI-17][1209] Unity Game Developer (COL14737_VI-17) · 90 min",
+      "🕐 Viernes 17h COL (19h ARG)",
+      "📅 2026-11-27 17:00",
+      "🏷️ COL14737_VI-17",
+      "[COL14740_JU-17][1209] Unity Game Developer (COL14740_JU-17) · 90 min",
+      "🕐 Jueves 17h COL (19h ARG)",
+      "📅 2027-01-07 17:00",
+      "🏷️ COL14740_JU-17",
+      "[COL14739_MA-13][1209] Unity Game Developer (COL14739_MA-13) · 90 min",
+      "🕐 Martes 13h COL (15h ARG)",
+      "📅 2027-03-02 13:00",
+      "🏷️ COL14739_MA-13"
     ]
   },
   "avisados": {
@@ -942,6 +942,8 @@
       "visto": "2026-11-06"
     }
   },
-  "faltas": {},
+  "faltas": {
+    "Unity Game Developer": 1
+  },
   "ultimo_heartbeat": "2026-11-11T21:39:55+00:00"
 }
