@@ -723,5 +723,6 @@
     "Minecraft": 1,
     "Code & Game lvl 2": 1
   },
-  "ultimo_heartbeat": "2026-11-12T09:42:32+00:00"
+  "ultimo_heartbeat": "2026-11-12T09:42:32+00:00",
+  "fallos_seguidos": 1
 }
