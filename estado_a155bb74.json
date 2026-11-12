@@ -85,6 +85,26 @@
       "📅 2026-12-09 17:00",
       "🏷️ PRM_COL14782_MI-17"
     ],
+    "Minecraft Craftforge Beginner": [
+      "[PRM_COL14667_SA-9][2124] Minecraft Craftforge Beginner (PRM_COL14667_SA-9) · 60 min",
+      "🕐 Sábado 9h COL (11h ARG)",
+      "📅 2026-11-14 9:00",
+      "🏷️ PRM_COL14667_SA-9",
+      "[COL14772_MA-18][2124] Minecraft Craftforge Beginner (COL14772_MA-18) · 60 min",
+      "🕐 Martes 18h COL (20h ARG)",
+      "📅 2026-11-17 18:00",
+      "🏷️ COL14772_MA-18"
+    ],
+    "Minecraft Craftforge Intermediate": [
+      "[PRM_COL14779_SA-10][2133] Minecraft Craftforge Intermediate (PRM_COL14779_SA-10) · 90 min",
+      "🕐 Sábado 10h COL (12h ARG)",
+      "📅 2026-11-14 10:00",
+      "🏷️ PRM_COL14779_SA-10",
+      "[COL14726_JU-12][2133] Minecraft Craftforge Intermediate (COL14726_JU-12) · 90 min",
+      "🕐 Jueves 12h COL (14h ARG)",
+      "📅 2027-01-14 12:00",
+      "🏷️ COL14726_JU-12"
+    ],
     "Code & Game: LVL3": [
       "[COL14628_VI-20][2059] Code & Game: LVL3 (COL14628_VI-20) · 90 min",
       "🕐 Viernes 20h COL (22h ARG)",
@@ -110,26 +130,6 @@
       "🕐 Martes 15h COL (17h ARG)",
       "📅 2026-12-08 15:00",
       "🏷️ COL14756_MA-15"
-    ],
-    "Minecraft Craftforge Beginner": [
-      "[PRM_COL14667_SA-9][2124] Minecraft Craftforge Beginner (PRM_COL14667_SA-9) · 60 min",
-      "🕐 Sábado 9h COL (11h ARG)",
-      "📅 2026-11-14 9:00",
-      "🏷️ PRM_COL14667_SA-9",
-      "[COL14772_MA-18][2124] Minecraft Craftforge Beginner (COL14772_MA-18) · 60 min",
-      "🕐 Martes 18h COL (20h ARG)",
-      "📅 2026-11-17 18:00",
-      "🏷️ COL14772_MA-18"
-    ],
-    "Minecraft Craftforge Intermediate": [
-      "[PRM_COL14779_SA-10][2133] Minecraft Craftforge Intermediate (PRM_COL14779_SA-10) · 90 min",
-      "🕐 Sábado 10h COL (12h ARG)",
-      "📅 2026-11-14 10:00",
-      "🏷️ PRM_COL14779_SA-10",
-      "[COL14726_JU-12][2133] Minecraft Craftforge Intermediate (COL14726_JU-12) · 90 min",
-      "🕐 Jueves 12h COL (14h ARG)",
-      "📅 2027-01-14 12:00",
-      "🏷️ COL14726_JU-12"
     ]
   },
   "avisados": {
@@ -719,6 +719,8 @@
       "visto": "2026-11-12"
     }
   },
-  "faltas": {},
+  "faltas": {
+    "Code & Game: LVL3": 1
+  },
   "ultimo_heartbeat": "2026-11-11T21:40:42+00:00"
 }
