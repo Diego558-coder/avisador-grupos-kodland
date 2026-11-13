@@ -128,13 +128,6 @@
       "📅 2026-12-09 17:00",
       "🏷️ PRM_COL14782_MI-17"
     ],
-    "Minecraft Craftforge Beginner": [],
-    "Minecraft Craftforge Intermediate": [
-      "[COL14726_JU-12][2133] Minecraft Craftforge Intermediate (COL14726_JU-12) · 90 min",
-      "🕐 Jueves 12h COL (14h ARG)",
-      "📅 2027-01-14 12:00",
-      "🏷️ COL14726_JU-12"
-    ],
     "Code & Game: LVL3": [
       "[COL14757_MI-17][2059] Code & Game: LVL3 (COL14757_MI-17) · 90 min",
       "🕐 Miércoles 17h COL (19h ARG)",
@@ -156,6 +149,13 @@
       "🕐 Martes 15h COL (17h ARG)",
       "📅 2026-12-08 15:00",
       "🏷️ COL14756_MA-15"
+    ],
+    "Minecraft Craftforge Beginner": [],
+    "Minecraft Craftforge Intermediate": [
+      "[COL14726_JU-12][2133] Minecraft Craftforge Intermediate (COL14726_JU-12) · 90 min",
+      "🕐 Jueves 12h COL (14h ARG)",
+      "📅 2027-01-14 12:00",
+      "🏷️ COL14726_JU-12"
     ]
   },
   "avisados": {
@@ -905,8 +905,6 @@
       "visto": "2026-11-06"
     }
   },
-  "faltas": {
-    "Code & Game: LVL3": 1
-  },
+  "faltas": {},
   "ultimo_heartbeat": "2026-11-13T09:45:59+00:00"
 }
